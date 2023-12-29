@@ -112,7 +112,7 @@ int main()
         // Swap/Present framebuffer to screen
         glfwSwapBuffers(window);
 
-        // Delay to control FPS
+        // Delay to control FPS if needed
     }
 
     ImGui_ImplOpenGL3_Shutdown();
