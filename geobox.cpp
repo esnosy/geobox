@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -7,9 +8,16 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include "ImGuiFileDialog.h"
+
 #define INIT_WINDOW_WIDTH 800
 #define INIT_WINDOW_HEIGHT 600
 #define WINDOW_TITLE "GeoBox"
+
+constexpr ImVec2 INITIAL_IMGUI_WINDOW_SIZE(550, 680);
+
+constexpr const char *LOAD_STL_DIALOG_KEY = "Load_STL_Dialog_Key";
+constexpr const char *LOAD_STL_BUTTON_DIALOG_TITLE = "Load .stl";
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
@@ -32,7 +40,31 @@ void render()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow(); // Show demo window! :)
+
+    const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(INITIAL_IMGUI_WINDOW_SIZE, ImGuiCond_Once);
+
+    ImGui::Begin("GeoBox", nullptr, ImGuiWindowFlags_NoMove);
+
+    if (ImGui::Button(LOAD_STL_BUTTON_DIALOG_TITLE))
+    {
+        ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_DIALOG_TITLE, ".stl", ".");
+    }
+
+    if (ImGuiFileDialog::Instance()->Display(LOAD_STL_DIALOG_KEY))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk())
+        {
+            std::string file_path = ImGuiFileDialog::Instance()->GetFilePathName();
+            std::string file_parent_dir_path = ImGuiFileDialog::Instance()->GetCurrentPath();
+            // TODO: load stl
+        }
+        ImGuiFileDialog::Instance()->Close();
+    }
+
+    ImGui::End();
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -59,6 +91,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
