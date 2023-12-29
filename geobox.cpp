@@ -10,9 +10,9 @@
 
 #include "ImGuiFileDialog.h"
 
-#define INIT_WINDOW_WIDTH 800
-#define INIT_WINDOW_HEIGHT 600
-#define WINDOW_TITLE "GeoBox"
+constexpr int INIT_WINDOW_WIDTH = 800;
+constexpr int INIT_WINDOW_HEIGHT = 600;
+constexpr const char *WINDOW_TITLE = "GeoBox";
 
 constexpr ImVec2 INITIAL_IMGUI_WINDOW_SIZE(550, 680);
 
