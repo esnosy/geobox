@@ -19,11 +19,6 @@ constexpr ImVec2 INITIAL_IMGUI_WINDOW_SIZE(550, 680);
 constexpr const char *LOAD_STL_DIALOG_KEY = "Load_STL_Dialog_Key";
 constexpr const char *LOAD_STL_BUTTON_DIALOG_TITLE = "Load .stl";
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
 void process_input(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -67,6 +62,17 @@ void render()
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void window_refresh_callback(GLFWwindow *window)
+{
+    render();
+    glfwSwapBuffers(window);
+}
+
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+    glViewport(0, 0, width, height);
 }
 
 void init_imgui(GLFWwindow *window)
@@ -123,9 +129,10 @@ int main()
 
     glViewport(0, 0, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT);
 
-    // Set window resize callback
+    // Set window resize and refresh callbacks
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetWindowRefreshCallback(window, window_refresh_callback);
 
     // Main loop
 
