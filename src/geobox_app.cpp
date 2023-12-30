@@ -5,6 +5,7 @@
 #include <cstdlib> // for std::exit
 #include <vector>
 #include <optional>
+#include <iterator> // for std::istreambuf_iterator
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -53,26 +54,26 @@ static size_t calc_expected_stl_mesh_file_binary_size(uint32_t num_triangles)
     return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
 }
 
-static std::vector<Triangle> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
+static std::vector<Vec3f> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
 {
     Triangle t;
-    std::vector<Triangle> triangles;
-    triangles.reserve(num_triangles);
+    std::vector<Vec3f> vertices;
+    vertices.reserve(num_triangles * 3);
     for (uint32_t i = 0; i < num_triangles; i++)
     {
         ifs.read((char *)&t, sizeof(Triangle));
         // Skip "attribute byte count"
         ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
 
-        triangles.push_back(t);
+        vertices.insert(vertices.end(), t.vertices.begin(), t.vertices.end());
     }
-    return triangles;
+    return vertices;
 }
 
-static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs)
+static std::vector<Vec3f> read_stl_mesh_file_ascii(std::ifstream &ifs)
 {
     Triangle t;
-    std::vector<Triangle> triangles;
+    std::vector<Vec3f> vertices;
     while (ifs.good())
     {
         std::string token;
@@ -91,12 +92,12 @@ static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs)
             ifs >> token; // expecting "endloop"
             ifs >> token; // expecting "endfacet"
         }
-        triangles.push_back(t);
+        vertices.insert(vertices.end(), t.vertices.begin(), t.vertices.end());
     }
-    return triangles;
+    return vertices;
 }
 
-static std::optional<std::vector<Triangle>> read_stl_mesh_file(std::ifstream &ifs)
+static std::optional<std::vector<Vec3f>> read_stl_mesh_file(std::ifstream &ifs)
 {
     size_t file_size = calc_file_size(ifs);
     if (file_size == 0)
@@ -119,6 +120,22 @@ static std::optional<std::vector<Triangle>> read_stl_mesh_file(std::ifstream &if
         ifs.seekg(0, std::ifstream::beg);
         return read_stl_mesh_file_ascii(ifs);
     }
+}
+
+static std::optional<std::string> read_file(const std::string &file_path)
+{
+    std::ifstream ifs;
+    ifs.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+    try
+    {
+        ifs.open(file_path);
+    }
+    catch (const std::ifstream &)
+    {
+        std::cerr << "Failed to open file: " << file_path << std::endl;
+        return {};
+    }
+    return std::string(std::istreambuf_iterator(ifs), {});
 }
 
 GeoBox_App::GeoBox_App()
@@ -241,6 +258,13 @@ void GeoBox_App::render()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    if (m_is_mesh_loaded)
+    {
+        glUseProgram(m_shader_program);
+        glBindVertexArray(m_VAO);
+        glDrawArrays(GL_TRIANGLES, 0, m_num_vertices);
+    }
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -293,8 +317,86 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return;
     }
-    std::optional<std::vector<Triangle>> triangles = read_stl_mesh_file(ifs);
+    std::optional<std::vector<Vec3f>> vertices = read_stl_mesh_file(ifs);
+
+    if (!vertices.has_value())
+    {
+        return;
+    }
+
+    // Read shaders
+    std::optional<std::string> vertex_shader_source = read_file("shaders/simple.vert");
+    if (!vertex_shader_source.has_value())
+    {
+        return;
+    }
+    std::optional<std::string> fragment_shader_source = read_file("shaders/simple.frag");
+    if (!fragment_shader_source.has_value())
+    {
+        return;
+    }
+
+    // Compile and link shaders
+
+    char *vertex_shader_sources[] = {vertex_shader_source->data()};
+    char *fragment_shader_sources[] = {fragment_shader_source->data()};
+    int success;
+    char info_log[512];
+
+    unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, vertex_shader_sources, nullptr);
+    glCompileShader(vertex_shader);
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertex_shader, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << info_log << std::endl;
+        return;
+    }
+
+    unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, fragment_shader_sources, nullptr);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragment_shader, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                  << info_log << std::endl;
+        return;
+    }
+
+    unsigned int shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
+                  << info_log << std::endl;
+        return;
+    }
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
     unsigned int VBO;
     glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(Vec3f), (float *)vertices->data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    m_VAO = VAO;
+    m_shader_program = shader_program;
+    m_num_vertices = vertices->size();
+    m_is_mesh_loaded = true;
 }

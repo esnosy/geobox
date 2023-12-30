@@ -14,6 +14,15 @@ public:
 private:
     GLFWwindow *m_window = nullptr;
 
+    /* TODO: get rid of this monstrosity, 
+       store meshes in a vector or something,
+       and load shaders in initialization
+    */
+    unsigned int m_VAO;
+    unsigned int m_shader_program;
+    unsigned int m_num_vertices;
+    bool m_is_mesh_loaded = false;
+
     void init_glfw();
     void init_glad() const;
     void init_imgui();
