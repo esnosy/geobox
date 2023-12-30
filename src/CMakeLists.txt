@@ -15,7 +15,10 @@ target_sources(geobox
     vec3f.hpp
 )
 
+# TODO: maybe use a more efficient method, one that doesn't delete and recopy files over and over?
 add_custom_target(copy_shaders ALL
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_LIST_DIR}/shaders
     ${CMAKE_CURRENT_BINARY_DIR}/shaders
