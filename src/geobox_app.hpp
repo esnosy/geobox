@@ -28,9 +28,6 @@ private:
     void render();
     void shutdown() const;
 
-    // .stl mesh support
-    void read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles);
-    void read_stl_mesh_file_ascii(std::ifstream &ifs);
-    void read_stl_mesh_file(std::ifstream &ifs);
+    // Dialogs
     void on_load_stl_dialog_ok(const std::string &file_path);
 };

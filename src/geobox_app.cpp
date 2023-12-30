@@ -3,6 +3,8 @@
 #include <fstream>
 #include <array>
 #include <cstdlib> // for std::exit
+#include <vector>
+#include <optional>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -49,6 +51,74 @@ static size_t calc_expected_stl_mesh_file_binary_size(uint32_t num_triangles)
 {
     static_assert(sizeof(Triangle) == sizeof(float[4][3]), "Incorrect size for Triangle struct"); // Normal + 3 vertices = 4 * 3 floats
     return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
+}
+
+static std::vector<Triangle> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
+{
+    Triangle t;
+    std::vector<Triangle> triangles;
+    triangles.reserve(num_triangles);
+    for (uint32_t i = 0; i < num_triangles; i++)
+    {
+        ifs.read((char *)&t, sizeof(Triangle));
+        // Skip "attribute byte count"
+        ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
+
+        triangles.push_back(t);
+    }
+    return triangles;
+}
+
+static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs)
+{
+    Triangle t;
+    std::vector<Triangle> triangles;
+    while (ifs.good())
+    {
+        std::string token;
+        ifs >> token;
+        if (token == "facet")
+        {
+            ifs >> token; // expecting "normal"
+            ifs >> t.normal.x >> t.normal.y >> t.normal.z;
+            ifs >> token; // expecting "outer"
+            ifs >> token; // expecting "loop"
+            for (int i = 0; i < 3; i++)
+            {
+                ifs >> token; // expecting "vertex"
+                ifs >> t.vertices[i].x >> t.vertices[i].y >> t.vertices[i].z;
+            }
+            ifs >> token; // expecting "endloop"
+            ifs >> token; // expecting "endfacet"
+        }
+        triangles.push_back(t);
+    }
+    return triangles;
+}
+
+static std::optional<std::vector<Triangle>> read_stl_mesh_file(std::ifstream &ifs)
+{
+    size_t file_size = calc_file_size(ifs);
+    if (file_size == 0)
+    {
+        std::cerr << "Empty file" << std::endl;
+        return {};
+    }
+    // Skip binary header
+    ifs.seekg(BINARY_STL_HEADER_SIZE, std::ifstream::beg);
+
+    uint32_t num_triangles = 0;
+    ifs.read((char *)&num_triangles, sizeof(uint32_t));
+
+    if (file_size == calc_expected_stl_mesh_file_binary_size(num_triangles))
+    {
+        return read_stl_mesh_file_binary(ifs, num_triangles);
+    }
+    else
+    {
+        ifs.seekg(0, std::ifstream::beg);
+        return read_stl_mesh_file_ascii(ifs);
+    }
 }
 
 GeoBox_App::GeoBox_App()
@@ -220,69 +290,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return;
     }
-    std::vector<Vec3f> vertices;
-    read_stl_mesh_file(ifs);
+    std::optional<std::vector<Triangle>> triangles = read_stl_mesh_file(ifs);
 
     unsigned int VBO;
     glGenBuffers(1, &VBO);
-}
-
-void GeoBox_App::read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
-{
-    Triangle t;
-    for (uint32_t i = 0; i < num_triangles; i++)
-    {
-        ifs.read((char *)&t, sizeof(Triangle));
-        // Skip "attribute byte count"
-        ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
-    }
-}
-
-void GeoBox_App::read_stl_mesh_file_ascii(std::ifstream &ifs)
-{
-    Triangle t;
-    while (ifs.good())
-    {
-        std::string token;
-        ifs >> token;
-        if (token == "facet")
-        {
-            ifs >> token; // expecting "normal"
-            ifs >> t.normal.x >> t.normal.y >> t.normal.z;
-            ifs >> token; // expecting "outer"
-            ifs >> token; // expecting "loop"
-            for (int i = 0; i < 3; i++)
-            {
-                ifs >> token; // expecting "vertex"
-                ifs >> t.vertices[i].x >> t.vertices[i].y >> t.vertices[i].z;
-            }
-            ifs >> token; // expecting "endloop"
-            ifs >> token; // expecting "endfacet"
-        }
-    }
-}
-
-void GeoBox_App::read_stl_mesh_file(std::ifstream &ifs)
-{
-    size_t file_size = calc_file_size(ifs);
-    if (file_size == 0)
-    {
-        std::cerr << "Empty file" << std::endl;
-        return;
-    }
-    // Skip binary header
-    ifs.seekg(BINARY_STL_HEADER_SIZE, std::ifstream::beg);
-
-    uint32_t num_triangles = 0;
-    ifs.read((char *)&num_triangles, sizeof(uint32_t));
-
-    if (file_size == calc_expected_stl_mesh_file_binary_size(num_triangles))
-    {
-        read_stl_mesh_file_binary(ifs, num_triangles);
-    }
-    else
-    {
-        ifs.seekg(0, std::ifstream::beg);
-        read_stl_mesh_file_ascii(ifs);
-    }
 }
