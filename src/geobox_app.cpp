@@ -20,7 +20,8 @@ constexpr int INIT_WINDOW_WIDTH = 800;
 constexpr int INIT_WINDOW_HEIGHT = 600;
 constexpr const char *WINDOW_TITLE = "GeoBox";
 
-constexpr ImVec2 INITIAL_IMGUI_WINDOW_SIZE(550, 680);
+constexpr const char *IMGUI_MAIN_WINDOW_TITLE = WINDOW_TITLE;
+constexpr ImVec2 INITIAL_IMGUI_MAIN_WINDOW_SIZE(550, 680);
 
 constexpr const char *LOAD_STL_DIALOG_KEY = "Load_STL_Dialog_Key";
 constexpr const char *LOAD_STL_BUTTON_DIALOG_TITLE = "Load .stl";
@@ -173,9 +174,9 @@ void GeoBox_App::render()
 
     const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_Once);
-    ImGui::SetNextWindowSize(INITIAL_IMGUI_WINDOW_SIZE, ImGuiCond_Once);
+    ImGui::SetNextWindowSize(INITIAL_IMGUI_MAIN_WINDOW_SIZE, ImGuiCond_Once);
 
-    ImGui::Begin("GeoBox", nullptr, ImGuiWindowFlags_NoMove);
+    ImGui::Begin(IMGUI_MAIN_WINDOW_TITLE, nullptr, ImGuiWindowFlags_NoMove);
 
     if (ImGui::Button(LOAD_STL_BUTTON_DIALOG_TITLE))
     {
