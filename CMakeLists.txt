@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 project(geobox_cmake_project)
 
-add_executable(geobox geobox.cpp)
-target_compile_features(geobox PRIVATE cxx_std_11)
-set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
-
 add_subdirectory(extern)
-target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog)
+add_subdirectory(src)
