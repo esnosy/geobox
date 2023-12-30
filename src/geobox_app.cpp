@@ -202,7 +202,10 @@ void GeoBox_App::init_imgui()
 
 void GeoBox_App::init_gl_viewport() const
 {
-    glViewport(0, 0, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT);
+    int width;
+    int height;
+    glfwGetWindowSize(m_window, &width, &height);
+    glViewport(0, 0, width, height);
 }
 
 void GeoBox_App::init_glfw_callbacks()
