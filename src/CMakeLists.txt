@@ -9,7 +9,8 @@ target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog)
 
 target_sources(geobox
     PRIVATE
-    geobox.cpp
-    geobox.hpp
+    main.cpp
+    geobox_app.cpp
+    geobox_app.hpp
     vec3f.hpp
 )
