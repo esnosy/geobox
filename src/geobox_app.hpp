@@ -23,7 +23,7 @@ private:
     void window_refresh_callback(GLFWwindow *window);
     void framebuffer_size_callback(const GLFWwindow *window, int width, int height) const;
 
-    // main loop internals
+    // Main-loop internals
     void process_input();
     void render();
     void shutdown() const;
