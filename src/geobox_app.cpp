@@ -100,7 +100,7 @@ static std::vector<Vec3f> read_stl_mesh_file_ascii(std::ifstream &ifs)
 
 static std::optional<std::vector<Vec3f>> read_stl_mesh_file(const std::string &file_path)
 {
-    std::ifstream ifs(file_path, std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
+    std::ifstream ifs(file_path, std::ifstream::ate | std::ifstream::binary);
     if (!ifs.is_open())
     {
         std::cerr << "Failed to open file: " << file_path << std::endl;
@@ -136,13 +136,8 @@ static std::optional<std::vector<Vec3f>> read_stl_mesh_file(const std::string &f
 
 static std::optional<std::string> read_file(const std::string &file_path)
 {
-    std::ifstream ifs;
-    ifs.exceptions(std::ifstream::badbit | std::ifstream::failbit);
-    try
-    {
-        ifs.open(file_path);
-    }
-    catch (const std::ifstream::failure &)
+    std::ifstream ifs(file_path);
+    if (!ifs.is_open())
     {
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return {};
