@@ -131,7 +131,7 @@ static std::optional<std::string> read_file(const std::string &file_path)
     {
         ifs.open(file_path);
     }
-    catch (const std::ifstream &)
+    catch (const std::ifstream::failure &)
     {
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return {};
