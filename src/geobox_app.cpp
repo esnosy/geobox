@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <iterator> // for std::istreambuf_iterator
+#include <limits>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -145,6 +146,12 @@ GeoBox_App::GeoBox_App()
     init_imgui();
     init_gl_viewport();
     init_glfw_callbacks();
+    if (!init_shaders())
+    {
+        std::cerr << "Failed to initialize shaders" << std::endl;
+        shutdown();
+        std::exit(-1);
+    }
 }
 
 void GeoBox_App::main_loop()
@@ -234,6 +241,69 @@ void GeoBox_App::init_glfw_callbacks()
                                  { static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->window_refresh_callback(w); });
 }
 
+bool GeoBox_App::init_shaders()
+{
+    std::optional<std::string> vertex_shader_source = read_file("shaders/default.vert");
+    if (!vertex_shader_source.has_value())
+    {
+        return false;
+    }
+    std::optional<std::string> fragment_shader_source = read_file("shaders/default.frag");
+    if (!fragment_shader_source.has_value())
+    {
+        return false;
+    }
+
+    char *vertex_shader_sources[] = {vertex_shader_source->data()};
+    char *fragment_shader_sources[] = {fragment_shader_source->data()};
+    int success;
+    char info_log[512];
+
+    unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, vertex_shader_sources, nullptr);
+    glCompileShader(vertex_shader);
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertex_shader, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << info_log << std::endl;
+        return false;
+    }
+
+    unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, fragment_shader_sources, nullptr);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragment_shader, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                  << info_log << std::endl;
+        return false;
+    }
+
+    unsigned int shader_program = glCreateProgram();
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+    glLinkProgram(shader_program);
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
+                  << info_log << std::endl;
+        return false;
+    }
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    m_default_shader_program = shader_program;
+
+    return true;
+}
+
 void GeoBox_App::window_refresh_callback(GLFWwindow *window)
 {
     render();
@@ -258,11 +328,12 @@ void GeoBox_App::render()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (m_is_mesh_loaded)
+    glUseProgram(m_default_shader_program);
+
+    for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
-        glUseProgram(m_shader_program);
-        glBindVertexArray(m_VAO);
-        glDrawArrays(GL_TRIANGLES, 0, m_num_vertices);
+        glBindVertexArray(mesh.m_VAO);
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -324,65 +395,6 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
         return;
     }
 
-    // Read shaders
-    std::optional<std::string> vertex_shader_source = read_file("shaders/simple.vert");
-    if (!vertex_shader_source.has_value())
-    {
-        return;
-    }
-    std::optional<std::string> fragment_shader_source = read_file("shaders/simple.frag");
-    if (!fragment_shader_source.has_value())
-    {
-        return;
-    }
-
-    // Compile and link shaders
-
-    char *vertex_shader_sources[] = {vertex_shader_source->data()};
-    char *fragment_shader_sources[] = {fragment_shader_source->data()};
-    int success;
-    char info_log[512];
-
-    unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, vertex_shader_sources, nullptr);
-    glCompileShader(vertex_shader);
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertex_shader, 512, nullptr, info_log);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << info_log << std::endl;
-        return;
-    }
-
-    unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, fragment_shader_sources, nullptr);
-    glCompileShader(fragment_shader);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragment_shader, 512, nullptr, info_log);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-                  << info_log << std::endl;
-        return;
-    }
-
-    unsigned int shader_program = glCreateProgram();
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
-    glLinkProgram(shader_program);
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-                  << info_log << std::endl;
-        return;
-    }
-
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -395,8 +407,15 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
     glEnableVertexAttribArray(0);
 
-    m_VAO = VAO;
-    m_shader_program = shader_program;
-    m_num_vertices = vertices->size();
-    m_is_mesh_loaded = true;
+    if (vertices->size() <= std::numeric_limits<unsigned int>::max())
+    {
+        m_gpu_meshes.push_back({.m_VAO = VAO, .m_num_vertices = static_cast<unsigned int>(vertices->size())});
+    }
+    else
+    {
+        std::cerr << "Mesh exceeds maximum number of vertices: " << file_path << std::endl;
+        // TODO: maybe we can create multiple VAOs for large meshes?
+        // maybe that is why glDrawArrays accepts an offset and a count, really handy,
+        // something for the future
+    }
 }
