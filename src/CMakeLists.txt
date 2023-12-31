@@ -28,6 +28,7 @@ add_dependencies(geobox copy_shaders)
 
 option(WITH_ASAN "Enable ASAN" YES)
 
+# TODO: reduce repetitiveness
 if(WITH_ASAN)
     if(MSVC)
         target_compile_options(glad PRIVATE "/fsanitize=address")
