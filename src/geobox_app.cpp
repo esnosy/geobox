@@ -320,10 +320,7 @@ void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/, int wi
 
 void GeoBox_App::process_input()
 {
-    if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(m_window, true);
-    }
+    // TODO: process input
 }
 
 void GeoBox_App::render()
