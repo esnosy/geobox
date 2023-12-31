@@ -208,6 +208,7 @@ void GeoBox_App::init_glad() const
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cerr << "Failed to initialize GLAD" << std::endl;
+        glfwTerminate();
         std::exit(-1);
     }
 }
