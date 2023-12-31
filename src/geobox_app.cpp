@@ -38,7 +38,7 @@ struct Triangle
     std::array<Vec3f, 3> vertices;
 };
 
-static size_t calc_file_size(std::ifstream &ifs)
+[[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs)
 {
     auto original_pos = ifs.tellg();
     ifs.seekg(0, std::ifstream::end);
@@ -49,7 +49,7 @@ static size_t calc_file_size(std::ifstream &ifs)
     return file_size;
 }
 
-static size_t calc_expected_stl_mesh_file_binary_size(uint32_t num_triangles)
+static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles)
 {
     static_assert(sizeof(Triangle) == sizeof(float[4][3]), "Incorrect size for Triangle struct"); // Normal + 3 vertices = 4 * 3 floats
     return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
@@ -98,21 +98,32 @@ static std::vector<Vec3f> read_stl_mesh_file_ascii(std::ifstream &ifs)
     return vertices;
 }
 
-static std::optional<std::vector<Vec3f>> read_stl_mesh_file(std::ifstream &ifs)
+static std::optional<std::vector<Vec3f>> read_stl_mesh_file(const std::string &file_path)
 {
-    size_t file_size = calc_file_size(ifs);
-    if (file_size == 0)
+    std::ifstream ifs(file_path, std::ifstream::in | std::ifstream::ate | std::ifstream::binary);
+    if (!ifs.is_open())
     {
-        std::cerr << "Empty file" << std::endl;
+        std::cerr << "Failed to open file: " << file_path << std::endl;
         return {};
     }
-    // Skip binary header
+
+    auto file_end = ifs.tellg(); // file is already at end when it is open in "ate" mode
+    ifs.seekg(0, std::ifstream::beg);
+    auto file_beg = ifs.tellg();
+    auto file_size = file_end - file_beg;
+
+    if (file_size == 0)
+    {
+        std::cerr << "Empty file: " << file_path << std::endl;
+        return {};
+    }
+    // Assume file is binary at first and skip binary header
     ifs.seekg(BINARY_STL_HEADER_SIZE, std::ifstream::beg);
 
     uint32_t num_triangles = 0;
     ifs.read((char *)&num_triangles, sizeof(uint32_t));
 
-    if (file_size == calc_expected_stl_mesh_file_binary_size(num_triangles))
+    if (file_size == calc_expected_binary_stl_mesh_file_size(num_triangles))
     {
         return read_stl_mesh_file_binary(ifs, num_triangles);
     }
@@ -380,21 +391,10 @@ void GeoBox_App::shutdown() const
 
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
 {
-    std::ifstream ifs;
-    ifs.exceptions(std::ifstream::badbit | std::ifstream::failbit);
-    try
-    {
-        ifs.open(file_path, std::ifstream::binary);
-    }
-    catch (const std::ifstream::failure &)
-    {
-        std::cerr << "Failed to open file: " << file_path << std::endl;
-        return;
-    }
-    std::optional<std::vector<Vec3f>> vertices = read_stl_mesh_file(ifs);
-
+    std::optional<std::vector<Vec3f>> vertices = read_stl_mesh_file(file_path);
     if (!vertices.has_value())
     {
+        std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
         return;
     }
 
