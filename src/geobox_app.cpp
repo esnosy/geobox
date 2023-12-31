@@ -219,6 +219,9 @@ void GeoBox_App::init_imgui()
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
+    // Disabling ini file: https://github.com/ocornut/imgui/issues/5169
+    io.IniFilename = nullptr;
+    io.LogFilename = nullptr;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
