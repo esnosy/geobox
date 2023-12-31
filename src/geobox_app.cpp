@@ -198,6 +198,8 @@ void GeoBox_App::init_glfw()
     }
     glfwMakeContextCurrent(m_window);
 
+    // Store a pointer to the object in the GLFW "user" pointer,
+    // so we can access methods in GLFW callbacks, see https://stackoverflow.com/a/28660673/8094047
     glfwSetWindowUserPointer(m_window, this);
 }
 
@@ -234,7 +236,7 @@ void GeoBox_App::init_gl_viewport() const
 
 void GeoBox_App::init_glfw_callbacks()
 {
-    // Using methods as callbacks https://stackoverflow.com/a/28660673/8094047
+    // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
     glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *w, int width, int height)
                                    { static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height); });
     glfwSetWindowRefreshCallback(m_window, [](GLFWwindow *w)
