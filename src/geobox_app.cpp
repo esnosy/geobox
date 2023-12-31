@@ -386,7 +386,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
     {
         ifs.open(file_path, std::ifstream::binary);
     }
-    catch (std::ifstream::failure &)
+    catch (const std::ifstream::failure &)
     {
         std::cerr << "Failed to open file: " << file_path << std::endl;
         return;
