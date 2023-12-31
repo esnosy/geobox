@@ -7,6 +7,7 @@
 #include <optional>
 #include <iterator> // for std::istreambuf_iterator
 #include <limits>
+#include <cmath>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -338,6 +339,10 @@ void GeoBox_App::render()
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(m_default_shader_program);
+    float time = glfwGetTime();
+    float green_value = (std::sin(time) / 2.0f) + 0.5f;
+    int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
+    glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
 
     for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
