@@ -8,6 +8,7 @@
 #include <iterator> // for std::istreambuf_iterator
 #include <limits>
 #include <cmath>
+#include <numbers> // for std::numbers::pi
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -18,6 +19,7 @@
 
 #include "ImGuiFileDialog.h"
 
+#include "mat4x4f.hpp"
 #include "vec3f.hpp"
 #include "geobox_app.hpp"
 
@@ -38,6 +40,11 @@ struct Triangle
     Vec3f normal;
     std::array<Vec3f, 3> vertices;
 };
+
+static float degrees_to_radians(float degrees)
+{
+    return degrees * (std::numbers::pi / 180.0f);
+}
 
 [[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs)
 {
@@ -335,6 +342,10 @@ void GeoBox_App::process_input()
 
 void GeoBox_App::render()
 {
+    int width;
+    int height;
+    glfwGetWindowSize(m_window, &width, &height);
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -343,6 +354,17 @@ void GeoBox_App::render()
     float green_value = (std::sin(time) / 2.0f) + 0.5f;
     int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
     glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
+
+    Mat4x4f model = Mat4x4f::rotation_axis_angle({0.5f, 1.0f, 0.0f}, time * degrees_to_radians(50.0f));
+    Mat4x4f view = Mat4x4f::translation(Vec3f{0.0f, 0.0f, -0.5f});
+    Mat4x4f projection = Mat4x4f::perspective(degrees_to_radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+
+    int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
+    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, model.values_ptr());
+    int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
+    glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, view.values_ptr());
+    int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
+    glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, projection.values_ptr());
 
     for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
