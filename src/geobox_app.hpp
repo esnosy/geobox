@@ -6,10 +6,14 @@
 
 #include <GLFW/glfw3.h>
 
-struct GPU_Mesh
+class GPU_Mesh
 {
+public:
     unsigned int m_VAO;
     unsigned int m_num_vertices;
+    bool m_is_indexed;
+
+    GPU_Mesh(unsigned int VAO, unsigned int num_vertices, bool is_indexed) : m_VAO(VAO), m_num_vertices(num_vertices), m_is_indexed(is_indexed) {}
 };
 
 class GeoBox_App

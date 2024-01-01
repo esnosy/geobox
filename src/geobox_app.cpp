@@ -41,6 +41,64 @@ struct Triangle
     std::array<Vec3f, 3> vertices;
 };
 
+struct Indexed_Mesh
+{
+    struct Triangle
+    {
+        uint32_t vertices[3];
+    };
+    std::vector<Vec3f> vertices;
+    std::vector<Triangle> triangles;
+
+    GPU_Mesh to_gpu()
+    {
+        unsigned int VAO;
+        glGenVertexArrays(1, &VAO);
+        glBindVertexArray(VAO);
+
+        unsigned int VBO;
+        glGenBuffers(1, &VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec3f), (float *)vertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
+        glEnableVertexAttribArray(0);
+
+        unsigned int EBO;
+        glGenBuffers(1, &EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_STATIC_DRAW);
+
+        return GPU_Mesh(VAO, triangles.size() * 3, true);
+    }
+};
+
+static Indexed_Mesh generate_box(const Vec3f &min, const Vec3f &max)
+{
+    Indexed_Mesh mesh;
+    mesh.vertices = {min,
+                     {max.x, min.y, min.z},
+                     {max.x, max.y, min.z},
+                     {min.x, max.y, min.z},
+                     {min.x, min.y, max.z},
+                     {max.x, min.y, max.z},
+                     max,
+                     {min.x, max.y, max.z}};
+    mesh.triangles = {{0, 1, 2},
+                      {0, 2, 3},
+                      {1, 5, 6},
+                      {1, 6, 2},
+                      {5, 4, 7},
+                      {5, 7, 6},
+                      {4, 0, 3},
+                      {4, 3, 7},
+                      {3, 2, 6},
+                      {3, 6, 7},
+                      {4, 5, 1},
+                      {4, 1, 0}};
+    return mesh;
+}
+
 static float degrees_to_radians(float degrees)
 {
     return degrees * (std::numbers::pi / 180.0f);
@@ -166,6 +224,9 @@ GeoBox_App::GeoBox_App()
         shutdown();
         std::exit(-1);
     }
+
+    Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
+    m_gpu_meshes.push_back(box.to_gpu());
 }
 
 void GeoBox_App::main_loop()
@@ -356,7 +417,7 @@ void GeoBox_App::render()
     glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
 
     Mat4x4f model = Mat4x4f::rotation_axis_angle({0.5f, 1.0f, 0.0f}, time * degrees_to_radians(50.0f));
-    Mat4x4f view = Mat4x4f::translation(Vec3f{0.0f, 0.0f, -0.5f});
+    Mat4x4f view = Mat4x4f::translation(Vec3f{0.0f, 0.0f, -10.0f});
     Mat4x4f projection = Mat4x4f::perspective(degrees_to_radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
 
     int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
@@ -369,7 +430,14 @@ void GeoBox_App::render()
     for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
         glBindVertexArray(mesh.m_VAO);
-        glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
+        if (mesh.m_is_indexed)
+        {
+            glDrawElements(GL_TRIANGLES, mesh.m_num_vertices, GL_UNSIGNED_INT, 0);
+        }
+        else
+        {
+            glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
+        }
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -434,7 +502,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
 
     if (vertices->size() <= std::numeric_limits<unsigned int>::max())
     {
-        m_gpu_meshes.push_back({.m_VAO = VAO, .m_num_vertices = static_cast<unsigned int>(vertices->size())});
+        m_gpu_meshes.emplace_back(VAO, static_cast<unsigned int>(vertices->size()), false);
     }
     else
     {
