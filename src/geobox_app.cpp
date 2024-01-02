@@ -23,6 +23,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "geobox_app.hpp"
 
 constexpr int INIT_WINDOW_WIDTH = 800;
@@ -283,11 +286,11 @@ void GeoBox_App::init_glfw_callbacks() {
 }
 
 bool GeoBox_App::init_shaders() {
-  std::optional<std::string> vertex_shader_source = read_file("shaders/default.vert");
+  std::optional<std::string> vertex_shader_source = read_file("resources/shaders/default.vert");
   if (!vertex_shader_source.has_value()) {
     return false;
   }
-  std::optional<std::string> fragment_shader_source = read_file("shaders/default.frag");
+  std::optional<std::string> fragment_shader_source = read_file("resources/shaders/default.frag");
   if (!fragment_shader_source.has_value()) {
     return false;
   }
