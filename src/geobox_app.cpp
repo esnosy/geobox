@@ -365,13 +365,15 @@ void GeoBox_App::render() {
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUseProgram(m_default_shader_program);
+
   float time = glfwGetTime();
   float green_value = (std::sin(time) / 2.0f) + 0.5f;
+
   int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
-  glUniform4f(object_color_uniform_location, 0.5f, 0.5f, 0.5f, 1.0f);
+  glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
 
   glm::mat4 model(1.0f);
-  model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+  model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
   glm::mat4 view = glm::mat4(1.0f);
   // note that we're translating the scene in the reverse direction of where we
