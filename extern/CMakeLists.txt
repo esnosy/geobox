@@ -14,3 +14,7 @@ target_link_libraries(imgui PRIVATE glfw)
 
 add_subdirectory(ImGuiFileDialog-0.6.6.1)
 target_link_libraries(ImGuiFileDialog PRIVATE imgui)
+
+set(GLM_BUILD_TESTS OFF)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(glm-0.9.9.8)

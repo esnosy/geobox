@@ -8,7 +8,6 @@
 #include <iterator> // for std::istreambuf_iterator
 #include <limits>
 #include <cmath>
-#include <numbers> // for std::numbers::pi
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -19,8 +18,10 @@
 
 #include "ImGuiFileDialog.h"
 
-#include "mat4x4f.hpp"
-#include "vec3f.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "geobox_app.hpp"
 
 constexpr int INIT_WINDOW_WIDTH = 800;
@@ -40,8 +41,8 @@ constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE(600, 500);
 
 struct Triangle
 {
-    Vec3f normal;
-    std::array<Vec3f, 3> vertices;
+    glm::vec3 normal;
+    std::array<glm::vec3, 3> vertices;
 };
 
 struct Indexed_Mesh
@@ -50,7 +51,7 @@ struct Indexed_Mesh
     {
         uint32_t vertices[3];
     };
-    std::vector<Vec3f> vertices;
+    std::vector<glm::vec3> vertices;
     std::vector<Triangle> triangles;
 
     GPU_Mesh to_gpu()
@@ -62,7 +63,7 @@ struct Indexed_Mesh
         unsigned int VBO;
         glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vec3f), (float *)vertices.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), (float *)vertices.data(), GL_STATIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
         glEnableVertexAttribArray(0);
 
@@ -76,7 +77,7 @@ struct Indexed_Mesh
     }
 };
 
-static Indexed_Mesh generate_box(const Vec3f &min, const Vec3f &max)
+static Indexed_Mesh generate_box(const glm::vec3 &min, const glm::vec3 &max)
 {
     Indexed_Mesh mesh;
     mesh.vertices = {min,
@@ -102,11 +103,6 @@ static Indexed_Mesh generate_box(const Vec3f &min, const Vec3f &max)
     return mesh;
 }
 
-static float degrees_to_radians(float degrees)
-{
-    return degrees * (std::numbers::pi / 180.0f);
-}
-
 [[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs)
 {
     auto original_pos = ifs.tellg();
@@ -124,10 +120,10 @@ static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles)
     return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
 }
 
-static std::vector<Vec3f> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
+static std::vector<glm::vec3> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles)
 {
     Triangle t;
-    std::vector<Vec3f> vertices;
+    std::vector<glm::vec3> vertices;
     vertices.reserve(num_triangles * 3);
     for (uint32_t i = 0; i < num_triangles; i++)
     {
@@ -140,10 +136,10 @@ static std::vector<Vec3f> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t
     return vertices;
 }
 
-static std::vector<Vec3f> read_stl_mesh_file_ascii(std::ifstream &ifs)
+static std::vector<glm::vec3> read_stl_mesh_file_ascii(std::ifstream &ifs)
 {
     Triangle t;
-    std::vector<Vec3f> vertices;
+    std::vector<glm::vec3> vertices;
     while (ifs.good())
     {
         std::string token;
@@ -167,7 +163,7 @@ static std::vector<Vec3f> read_stl_mesh_file_ascii(std::ifstream &ifs)
     return vertices;
 }
 
-static std::optional<std::vector<Vec3f>> read_stl_mesh_file(const std::string &file_path)
+static std::optional<std::vector<glm::vec3>> read_stl_mesh_file(const std::string &file_path)
 {
     std::ifstream ifs(file_path, std::ifstream::ate | std::ifstream::binary);
     if (!ifs.is_open())
@@ -228,8 +224,8 @@ GeoBox_App::GeoBox_App()
         std::exit(-1);
     }
 
-    Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
-    m_gpu_meshes.push_back(box.to_gpu());
+    // Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
+    // m_gpu_meshes.push_back(box.to_gpu());
 }
 
 void GeoBox_App::main_loop()
@@ -417,18 +413,24 @@ void GeoBox_App::render()
     float time = glfwGetTime();
     float green_value = (std::sin(time) / 2.0f) + 0.5f;
     int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
-    glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
+    glUniform4f(object_color_uniform_location, 0.5f, 0.5f, 0.5f, 1.0f);
 
-    Mat4x4f model = Mat4x4f::rotation_axis_angle({0.5f, 1.0f, 0.0f}, time * degrees_to_radians(50.0f));
-    Mat4x4f view = Mat4x4f::translation(Vec3f{0.0f, 0.0f, -10.0f});
-    Mat4x4f projection = Mat4x4f::perspective(degrees_to_radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+    glm::mat4 model(1.0f);
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+
+    glm::mat4 view = glm::mat4(1.0f);
+    // note that we're translating the scene in the reverse direction of where we want to move
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
 
     int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
-    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, model.values_ptr());
+    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(model));
     int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
-    glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, view.values_ptr());
+    glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
     int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
-    glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, projection.values_ptr());
+    glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
     for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
@@ -490,7 +492,7 @@ void GeoBox_App::shutdown() const
 
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
 {
-    std::optional<std::vector<Vec3f>> vertices = read_stl_mesh_file(file_path);
+    std::optional<std::vector<glm::vec3>> vertices = read_stl_mesh_file(file_path);
     if (!vertices.has_value())
     {
         std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
@@ -504,7 +506,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(Vec3f), (float *)vertices->data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(glm::vec3), (float *)vertices->data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
     glEnableVertexAttribArray(0);

@@ -5,14 +5,13 @@ add_executable(geobox)
 target_compile_features(geobox PRIVATE cxx_std_20)
 set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 
-target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog)
+target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm)
 
 target_sources(geobox
     PRIVATE
     main.cpp
     geobox_app.cpp
     geobox_app.hpp
-    vec3f.hpp
 )
 
 # TODO: maybe use a more efficient method, one that doesn't delete and recopy files over and over?
