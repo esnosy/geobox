@@ -194,7 +194,6 @@ GeoBox_App::GeoBox_App() {
   init_glfw();
   init_glad();
   init_imgui();
-  init_gl_viewport();
   init_glfw_callbacks();
   if (!init_shaders()) {
     std::cerr << "Failed to initialize shaders" << std::endl;
@@ -251,6 +250,9 @@ void GeoBox_App::init_glfw() {
   // so we can access methods in GLFW callbacks, see
   // https://stackoverflow.com/a/28660673/8094047
   glfwSetWindowUserPointer(m_window, this);
+
+  // Swap interval of 1 reduces tearing with minimal input latency
+  glfwSwapInterval(1);
 }
 
 void GeoBox_App::init_glad() const {
@@ -279,13 +281,6 @@ void GeoBox_App::init_imgui() {
       m_window, true); // Second param install_callback=true will install GLFW
                        // callbacks and chain to existing ones.
   ImGui_ImplOpenGL3_Init();
-}
-
-void GeoBox_App::init_gl_viewport() const {
-  int width;
-  int height;
-  glfwGetFramebufferSize(m_window, &width, &height);
-  glViewport(0, 0, width, height);
 }
 
 void GeoBox_App::init_glfw_callbacks() {
@@ -363,6 +358,7 @@ bool GeoBox_App::init_shaders() {
 void GeoBox_App::window_refresh_callback(GLFWwindow *window) {
   render();
   glfwSwapBuffers(window);
+  glFinish();
 }
 
 void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/,

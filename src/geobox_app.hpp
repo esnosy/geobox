@@ -25,7 +25,6 @@ private:
   void init_glfw();
   void init_glad() const;
   void init_imgui();
-  void init_gl_viewport() const;
   void init_glfw_callbacks();
   bool init_shaders();
 
