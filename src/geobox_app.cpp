@@ -73,7 +73,7 @@ struct Indexed_Mesh
 
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_STATIC_DRAW);
 
-        return GPU_Mesh(VAO, triangles.size() * 3, true);
+        return GPU_Mesh(VAO, triangles.size() * 3);
     }
 };
 
@@ -225,7 +225,7 @@ GeoBox_App::GeoBox_App()
     }
 
     // Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
-    // m_gpu_meshes.push_back(box.to_gpu());
+    // m_gpu_indexed_meshes.push_back(box.to_gpu());
 }
 
 void GeoBox_App::main_loop()
@@ -431,18 +431,16 @@ void GeoBox_App::render()
     glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
     int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
     glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
-
+    
     for (const GPU_Mesh &mesh : m_gpu_meshes)
     {
         glBindVertexArray(mesh.m_VAO);
-        if (mesh.m_is_indexed)
-        {
-            glDrawElements(GL_TRIANGLES, mesh.m_num_vertices, GL_UNSIGNED_INT, 0);
-        }
-        else
-        {
-            glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
-        }
+        glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
+    }
+    for (const GPU_Mesh &indexed_mesh : m_gpu_indexed_meshes)
+    {
+        glBindVertexArray(indexed_mesh.m_VAO);
+        glDrawElements(GL_TRIANGLES, indexed_mesh.m_num_vertices, GL_UNSIGNED_INT, 0);
     }
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -513,7 +511,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path)
 
     if (vertices->size() <= std::numeric_limits<unsigned int>::max())
     {
-        m_gpu_meshes.emplace_back(VAO, static_cast<unsigned int>(vertices->size()), false);
+        m_gpu_meshes.emplace_back(VAO, static_cast<unsigned int>(vertices->size()));
     }
     else
     {

@@ -6,14 +6,10 @@
 
 #include <GLFW/glfw3.h>
 
-class GPU_Mesh
+struct GPU_Mesh
 {
-public:
     unsigned int m_VAO;
     unsigned int m_num_vertices;
-    bool m_is_indexed;
-
-    GPU_Mesh(unsigned int VAO, unsigned int num_vertices, bool is_indexed) : m_VAO(VAO), m_num_vertices(num_vertices), m_is_indexed(is_indexed) {}
 };
 
 class GeoBox_App
@@ -25,6 +21,7 @@ public:
 private:
     GLFWwindow *m_window = nullptr;
     std::vector<GPU_Mesh> m_gpu_meshes;
+    std::vector<GPU_Mesh> m_gpu_indexed_meshes;
     unsigned m_default_shader_program;
 
     void init_glfw();
