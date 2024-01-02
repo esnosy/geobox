@@ -60,18 +60,15 @@ struct Indexed_Mesh {
     unsigned int VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
-                 vertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
-                          (void *)0);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
     glEnableVertexAttribArray(0);
 
     unsigned int EBO;
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle),
-                 triangles.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_STATIC_DRAW);
 
     return GPU_Mesh(VAO, triangles.size() * 3);
   }
@@ -87,9 +84,8 @@ static Indexed_Mesh generate_box(const glm::vec3 &min, const glm::vec3 &max) {
                    {max.x, min.y, max.z},
                    max,
                    {min.x, max.y, max.z}};
-  mesh.triangles = {{0, 1, 2}, {0, 2, 3}, {1, 5, 6}, {1, 6, 2},
-                    {5, 4, 7}, {5, 7, 6}, {4, 0, 3}, {4, 3, 7},
-                    {3, 2, 6}, {3, 6, 7}, {4, 5, 1}, {4, 1, 0}};
+  mesh.triangles = {{0, 1, 2}, {0, 2, 3}, {1, 5, 6}, {1, 6, 2}, {5, 4, 7}, {5, 7, 6},
+                    {4, 0, 3}, {4, 3, 7}, {3, 2, 6}, {3, 6, 7}, {4, 5, 1}, {4, 1, 0}};
   return mesh;
 }
 
@@ -107,12 +103,10 @@ static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles) {
   static_assert(sizeof(Triangle) == sizeof(float[4][3]),
                 "Incorrect size for Triangle struct"); // Normal + 3 vertices =
                                                        // 4 * 3 floats
-  return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) +
-         num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
+  return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
 }
 
-static std::vector<glm::vec3>
-read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles) {
+static std::vector<glm::vec3> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles) {
   Triangle t;
   std::vector<glm::vec3> vertices;
   vertices.reserve(num_triangles * 3);
@@ -149,16 +143,14 @@ static std::vector<glm::vec3> read_stl_mesh_file_ascii(std::ifstream &ifs) {
   return vertices;
 }
 
-static std::optional<std::vector<glm::vec3>>
-read_stl_mesh_file(const std::string &file_path) {
+static std::optional<std::vector<glm::vec3>> read_stl_mesh_file(const std::string &file_path) {
   std::ifstream ifs(file_path, std::ifstream::ate | std::ifstream::binary);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open file: " << file_path << std::endl;
     return {};
   }
 
-  auto file_end =
-      ifs.tellg(); // file is already at end when it is open in "ate" mode
+  auto file_end = ifs.tellg(); // file is already at end when it is open in "ate" mode
   ifs.seekg(0, std::ifstream::beg);
   auto file_beg = ifs.tellg();
   auto file_size = file_end - file_beg;
@@ -201,8 +193,9 @@ GeoBox_App::GeoBox_App() {
     std::exit(-1);
   }
 
-  // Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
-  // m_gpu_indexed_meshes.push_back(box.to_gpu());
+  // Create default cube
+  Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
+  m_gpu_indexed_meshes.push_back(box.to_gpu());
 }
 
 void GeoBox_App::main_loop() {
@@ -237,8 +230,7 @@ void GeoBox_App::init_glfw() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-  m_window = glfwCreateWindow(INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT,
-                              WINDOW_TITLE, nullptr, nullptr);
+  m_window = glfwCreateWindow(INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
   if (m_window == nullptr) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -271,39 +263,31 @@ void GeoBox_App::init_imgui() {
   // Disabling ini file: https://github.com/ocornut/imgui/issues/5169
   io.IniFilename = nullptr;
   io.LogFilename = nullptr;
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-  io.ConfigFlags |=
-      ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
   // Setup Platform/Renderer backends
-  ImGui_ImplGlfw_InitForOpenGL(
-      m_window, true); // Second param install_callback=true will install GLFW
-                       // callbacks and chain to existing ones.
+  ImGui_ImplGlfw_InitForOpenGL(m_window, true); // Second param install_callback=true will install GLFW
+                                                // callbacks and chain to existing ones.
   ImGui_ImplOpenGL3_Init();
 }
 
 void GeoBox_App::init_glfw_callbacks() {
   // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
-  glfwSetFramebufferSizeCallback(
-      m_window, [](GLFWwindow *w, int width, int height) {
-        static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))
-            ->framebuffer_size_callback(w, width, height);
-      });
+  glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *w, int width, int height) {
+    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height);
+  });
   glfwSetWindowRefreshCallback(m_window, [](GLFWwindow *w) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))
-        ->window_refresh_callback(w);
+    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->window_refresh_callback(w);
   });
 }
 
 bool GeoBox_App::init_shaders() {
-  std::optional<std::string> vertex_shader_source =
-      read_file("shaders/default.vert");
+  std::optional<std::string> vertex_shader_source = read_file("shaders/default.vert");
   if (!vertex_shader_source.has_value()) {
     return false;
   }
-  std::optional<std::string> fragment_shader_source =
-      read_file("shaders/default.frag");
+  std::optional<std::string> fragment_shader_source = read_file("shaders/default.frag");
   if (!fragment_shader_source.has_value()) {
     return false;
   }
@@ -319,8 +303,7 @@ bool GeoBox_App::init_shaders() {
   glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(vertex_shader, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-              << info_log << std::endl;
+    std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << info_log << std::endl;
     return false;
   }
 
@@ -330,8 +313,7 @@ bool GeoBox_App::init_shaders() {
   glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(fragment_shader, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-              << info_log << std::endl;
+    std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << info_log << std::endl;
     return false;
   }
 
@@ -342,8 +324,7 @@ bool GeoBox_App::init_shaders() {
   glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
   if (!success) {
     glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-              << info_log << std::endl;
+    std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << info_log << std::endl;
     return false;
   }
 
@@ -361,8 +342,7 @@ void GeoBox_App::window_refresh_callback(GLFWwindow *window) {
   glFinish();
 }
 
-void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/,
-                                           int width, int height) const {
+void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int height) const {
   glViewport(0, 0, width, height);
 }
 
@@ -384,35 +364,26 @@ void GeoBox_App::render() {
   glUseProgram(m_default_shader_program);
   float time = glfwGetTime();
   float green_value = (std::sin(time) / 2.0f) + 0.5f;
-  int object_color_uniform_location =
-      glGetUniformLocation(m_default_shader_program, "object_color");
+  int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
   glUniform4f(object_color_uniform_location, 0.5f, 0.5f, 0.5f, 1.0f);
 
   glm::mat4 model(1.0f);
-  model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f),
-                      glm::vec3(0.5f, 1.0f, 0.0f));
+  model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
   glm::mat4 view = glm::mat4(1.0f);
   // note that we're translating the scene in the reverse direction of where we
   // want to move
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -1.0f));
+  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
 
   glm::mat4 projection;
-  projection = glm::perspective(glm::radians(45.0f),
-                                (float)width / (float)height, 0.1f, 100.0f);
+  projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
 
-  int model_matrix_uniform_location =
-      glGetUniformLocation(m_default_shader_program, "model");
-  glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
-                     glm::value_ptr(model));
-  int view_matrix_uniform_location =
-      glGetUniformLocation(m_default_shader_program, "view");
-  glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE,
-                     glm::value_ptr(view));
-  int projection_matrix_uniform_location =
-      glGetUniformLocation(m_default_shader_program, "projection");
-  glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE,
-                     glm::value_ptr(projection));
+  int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
+  glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(model));
+  int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
+  glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
+  int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
+  glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
   for (const GPU_Mesh &mesh : m_gpu_meshes) {
     glBindVertexArray(mesh.m_VAO);
@@ -420,8 +391,7 @@ void GeoBox_App::render() {
   }
   for (const GPU_Mesh &indexed_mesh : m_gpu_indexed_meshes) {
     glBindVertexArray(indexed_mesh.m_VAO);
-    glDrawElements(GL_TRIANGLES, indexed_mesh.m_num_vertices, GL_UNSIGNED_INT,
-                   0);
+    glDrawElements(GL_TRIANGLES, indexed_mesh.m_num_vertices, GL_UNSIGNED_INT, 0);
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -429,25 +399,18 @@ void GeoBox_App::render() {
   ImGui::NewFrame();
 
   const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
-  ImGui::SetNextWindowPos(
-      ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y),
-      ImGuiCond_Once);
+  ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_Once);
   ImGui::SetNextWindowSize(INITIAL_IMGUI_MAIN_WINDOW_SIZE, ImGuiCond_Once);
 
   ImGui::Begin(IMGUI_MAIN_WINDOW_TITLE, nullptr, ImGuiWindowFlags_None);
 
   if (ImGui::Button(LOAD_STL_BUTTON_DIALOG_TITLE)) {
-    ImGui::SetNextWindowPos(
-        ImVec2(main_viewport->WorkPos.x +
-                   INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
-               main_viewport->WorkPos.y +
-                   INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
-        ImGuiCond_Once);
-    ImGui::SetNextWindowSize(INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE,
-                             ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
+                                   main_viewport->WorkPos.y + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
+                            ImGuiCond_Once);
+    ImGui::SetNextWindowSize(INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE, ImGuiCond_Once);
 
-    ImGuiFileDialog::Instance()->OpenDialog(
-        LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_DIALOG_TITLE, ".stl", ".");
+    ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_DIALOG_TITLE, ".stl", ".");
   }
 
   if (ImGuiFileDialog::Instance()->Display(LOAD_STL_DIALOG_KEY)) {
@@ -472,8 +435,7 @@ void GeoBox_App::shutdown() const {
 }
 
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
-  std::optional<std::vector<glm::vec3>> vertices =
-      read_stl_mesh_file(file_path);
+  std::optional<std::vector<glm::vec3>> vertices = read_stl_mesh_file(file_path);
   if (!vertices.has_value()) {
     std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
     return;
@@ -486,8 +448,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   unsigned int VBO;
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(glm::vec3),
-               vertices->data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(glm::vec3), vertices->data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
@@ -495,8 +456,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   if (vertices->size() <= std::numeric_limits<unsigned int>::max()) {
     m_gpu_meshes.emplace_back(VAO, static_cast<unsigned int>(vertices->size()));
   } else {
-    std::cerr << "Mesh exceeds maximum number of vertices: " << file_path
-              << std::endl;
+    std::cerr << "Mesh exceeds maximum number of vertices: " << file_path << std::endl;
     // TODO: maybe we can create multiple VAOs for large meshes?
     // maybe that is why glDrawArrays accepts an offset and a count, really
     // handy, something for the future
