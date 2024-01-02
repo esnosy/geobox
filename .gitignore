@@ -1,3 +1,4 @@
 /.vscode/
 /build_*_*/
 /CMakeLists.txt.user
+/build-*-*/
