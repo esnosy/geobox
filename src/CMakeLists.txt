@@ -25,28 +25,3 @@ add_custom_target(copy_shaders ALL
     COMMENT "Copying shaders"
 )
 add_dependencies(geobox copy_shaders)
-
-option(WITH_ASAN "Enable ASAN" YES)
-
-# TODO: reduce repetitiveness
-if(WITH_ASAN)
-    if(MSVC)
-        target_compile_options(glad PRIVATE "/fsanitize=address")
-        target_compile_options(glfw PRIVATE "/fsanitize=address")
-        target_compile_options(imgui PRIVATE "/fsanitize=address")
-        target_compile_options(ImGuiFileDialog PRIVATE "/fsanitize=address")
-        target_compile_options(geobox PRIVATE "/fsanitize=address")
-    else()
-        target_compile_options(glad PRIVATE "-fsanitize=address")
-        target_compile_options(glfw PRIVATE "-fsanitize=address")
-        target_compile_options(imgui PRIVATE "-fsanitize=address")
-        target_compile_options(ImGuiFileDialog PRIVATE "-fsanitize=address")
-        target_compile_options(geobox PRIVATE "-fsanitize=address")
-
-        target_link_options(glad PRIVATE "-fsanitize=address")
-        target_link_options(glfw PRIVATE "-fsanitize=address")
-        target_link_options(imgui PRIVATE "-fsanitize=address")
-        target_link_options(ImGuiFileDialog PRIVATE "-fsanitize=address")
-        target_link_options(geobox PRIVATE "-fsanitize=address")
-    endif()
-endif()
