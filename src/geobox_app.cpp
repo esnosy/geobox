@@ -284,7 +284,7 @@ void GeoBox_App::init_imgui() {
 void GeoBox_App::init_gl_viewport() const {
   int width;
   int height;
-  glfwGetWindowSize(m_window, &width, &height);
+  glfwGetFramebufferSize(m_window, &width, &height);
   glViewport(0, 0, width, height);
 }
 
@@ -377,7 +377,10 @@ void GeoBox_App::process_input() {
 void GeoBox_App::render() {
   int width;
   int height;
-  glfwGetWindowSize(m_window, &width, &height);
+  glfwGetFramebufferSize(m_window, &width, &height);
+  if (width == 0 || height == 0) {
+    return;
+  }
 
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
