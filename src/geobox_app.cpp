@@ -35,6 +35,9 @@ constexpr const char *LOAD_STL_BUTTON_DIALOG_TITLE = "Load .stl";
 
 constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 
+constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET(100, 100);
+constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE(600, 500);
+
 struct Triangle
 {
     Vec3f normal;
@@ -452,6 +455,12 @@ void GeoBox_App::render()
 
     if (ImGui::Button(LOAD_STL_BUTTON_DIALOG_TITLE))
     {
+        ImGui::SetNextWindowPos(ImVec2(
+                                    main_viewport->WorkPos.x + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
+                                    main_viewport->WorkPos.y + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
+                                ImGuiCond_Once);
+        ImGui::SetNextWindowSize(INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE, ImGuiCond_Once);
+
         ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_DIALOG_TITLE, ".stl", ".");
     }
 
