@@ -61,8 +61,8 @@ struct Indexed_Mesh {
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3),
-                 (float *)vertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]),
+                 vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
@@ -487,9 +487,9 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(glm::vec3),
-               (float *)vertices->data(), GL_STATIC_DRAW);
+               vertices->data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[3]), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
 
   if (vertices->size() <= std::numeric_limits<unsigned int>::max()) {
