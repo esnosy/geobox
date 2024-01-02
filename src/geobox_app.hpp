@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iosfwd> // forward declaration of std::ifstream, ...
 #include <string>
 #include <vector>
 
