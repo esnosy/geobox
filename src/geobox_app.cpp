@@ -383,6 +383,17 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     return;
   }
 
+  if (vertices->empty()) {
+    std::cerr << "Empty mesh: " << file_path << std::endl;
+    return;
+  }
+
+  // Free old GPU data if needed
+  if (is_object_loaded) {
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+  }
+
   m_vertices = vertices.value();
 
   unsigned int VAO;
