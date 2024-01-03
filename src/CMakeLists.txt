@@ -9,7 +9,13 @@ target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm st
 
 target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp)
 
-set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/bin)
+# https://www.baeldung.com/linux/cmake-cmake_install_prefix
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX
+      ${CMAKE_BINARY_DIR}/bin
+      CACHE PATH "" FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+
 install(TARGETS geobox DESTINATION .)
 install(DIRECTORY resources DESTINATION .)
 include(CPack)
