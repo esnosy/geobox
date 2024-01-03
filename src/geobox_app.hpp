@@ -3,11 +3,32 @@
 #include <string>
 #include <vector>
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 
-struct GPU_Mesh {
+struct GPU_Indexed_Triangle_Mesh {
   unsigned int m_VAO;
+  unsigned int m_VBO;
+  unsigned int m_EBO;
   unsigned int m_num_vertices;
+  unsigned int m_num_indices;
+
+  void draw() const {
+    glBindVertexArray(m_VAO);
+    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
+  }
+};
+
+struct GPU_Triangle_Mesh {
+  unsigned int m_VAO;
+  unsigned int m_VBO;
+  unsigned int m_num_vertices;
+
+  void draw() const {
+    glBindVertexArray(m_VAO);
+    glDrawArrays(GL_TRIANGLES, 0, m_num_vertices);
+  }
 };
 
 class GeoBox_App {
@@ -17,8 +38,8 @@ public:
 
 private:
   GLFWwindow *m_window = nullptr;
-  std::vector<GPU_Mesh> m_gpu_meshes;
-  std::vector<GPU_Mesh> m_gpu_indexed_meshes;
+  std::vector<GPU_Triangle_Mesh> m_gpu_meshes;
+  std::vector<GPU_Indexed_Triangle_Mesh> m_gpu_indexed_meshes;
   unsigned m_default_shader_program;
 
   void init_glfw();

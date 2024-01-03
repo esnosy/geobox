@@ -43,6 +43,8 @@ constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET(100, 100);
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE(600, 500);
 
+constexpr unsigned int MAX_UINT = std::numeric_limits<unsigned int>::max();
+
 struct Triangle {
   glm::vec3 normal;
   std::array<glm::vec3, 3> vertices;
@@ -55,7 +57,15 @@ struct Indexed_Mesh {
   std::vector<glm::vec3> vertices;
   std::vector<Triangle> triangles;
 
-  GPU_Mesh to_gpu() {
+  std::optional<GPU_Indexed_Triangle_Mesh> to_gpu() {
+    size_t num_vertices = vertices.size();
+    size_t num_indices = triangles.size() * 3; // FIXME: avoid overflow
+    if ((num_vertices > MAX_UINT) || (num_indices > MAX_UINT)) {
+      // TODO: split into multiple GPU meshes?
+      std::cerr << "Failed to create GPU mesh, too many vertices or triangles" << std::endl;
+      return {};
+    }
+
     unsigned int VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -70,10 +80,13 @@ struct Indexed_Mesh {
     unsigned int EBO;
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_STATIC_DRAW);
 
-    return GPU_Mesh(VAO, triangles.size() * 3);
+    return GPU_Indexed_Triangle_Mesh{.m_VAO = VAO,
+                                     .m_VBO = VBO,
+                                     .m_EBO = EBO,
+                                     .m_num_vertices = static_cast<unsigned int>(num_vertices),
+                                     .m_num_indices = static_cast<unsigned int>(num_indices)};
   }
 };
 
@@ -198,7 +211,10 @@ GeoBox_App::GeoBox_App() {
 
   // Create default cube
   Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
-  m_gpu_indexed_meshes.push_back(box.to_gpu());
+  std::optional<GPU_Indexed_Triangle_Mesh> box_gpu_mesh = box.to_gpu();
+  if (box_gpu_mesh.has_value()) {
+    m_gpu_indexed_meshes.push_back(box_gpu_mesh.value());
+  }
 }
 
 void GeoBox_App::main_loop() {
@@ -390,13 +406,11 @@ void GeoBox_App::render() {
   int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
-  for (const GPU_Mesh &mesh : m_gpu_meshes) {
-    glBindVertexArray(mesh.m_VAO);
-    glDrawArrays(GL_TRIANGLES, 0, mesh.m_num_vertices);
+  for (const GPU_Triangle_Mesh &mesh : m_gpu_meshes) {
+    mesh.draw();
   }
-  for (const GPU_Mesh &indexed_mesh : m_gpu_indexed_meshes) {
-    glBindVertexArray(indexed_mesh.m_VAO);
-    glDrawElements(GL_TRIANGLES, indexed_mesh.m_num_vertices, GL_UNSIGNED_INT, 0);
+  for (const GPU_Indexed_Triangle_Mesh &indexed_mesh : m_gpu_indexed_meshes) {
+    indexed_mesh.draw();
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -459,7 +473,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glEnableVertexAttribArray(0);
 
   if (vertices->size() <= std::numeric_limits<unsigned int>::max()) {
-    m_gpu_meshes.emplace_back(VAO, static_cast<unsigned int>(vertices->size()));
+    m_gpu_meshes.emplace_back(VAO, VBO, static_cast<unsigned int>(vertices->size()));
   } else {
     std::cerr << "Mesh exceeds maximum number of vertices: " << file_path << std::endl;
     // TODO: maybe we can create multiple VAOs for large meshes?
