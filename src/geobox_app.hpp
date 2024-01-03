@@ -3,33 +3,8 @@
 #include <string>
 #include <vector>
 
-#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <glad/glad.h>
-
-struct GPU_Indexed_Triangle_Mesh {
-  unsigned int m_VAO;
-  unsigned int m_VBO;
-  unsigned int m_EBO;
-  unsigned int m_num_vertices;
-  unsigned int m_num_indices;
-
-  void draw() const {
-    glBindVertexArray(m_VAO);
-    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
-  }
-};
-
-struct GPU_Triangle_Mesh {
-  unsigned int m_VAO;
-  unsigned int m_VBO;
-  unsigned int m_num_vertices;
-
-  void draw() const {
-    glBindVertexArray(m_VAO);
-    glDrawArrays(GL_TRIANGLES, 0, m_num_vertices);
-  }
-};
+#include <glm/glm.hpp>
 
 class GeoBox_App {
 public:
@@ -38,9 +13,20 @@ public:
 
 private:
   GLFWwindow *m_window = nullptr;
-  std::vector<GPU_Triangle_Mesh> m_gpu_meshes;
-  std::vector<GPU_Indexed_Triangle_Mesh> m_gpu_indexed_meshes;
+
   unsigned m_default_shader_program;
+
+  // TODO: support more objects once we settle on a design
+  bool is_object_loaded = false;
+
+  unsigned int m_VAO;
+  // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later
+  // VAO references VBO and EBO so updates will be reflected when VAO is bound again
+  unsigned int m_VBO;
+  // unsigned int m_EBO;
+
+  std::vector<glm::vec3> m_vertices;
+  // std::vector<unsigned int[3]> m_triangles;
 
   void init_glfw();
   void init_glad() const;

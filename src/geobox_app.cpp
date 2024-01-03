@@ -1,10 +1,8 @@
-#include <array>
 #include <cmath>
 #include <cstdlib> // for std::exit
 #include <fstream>
 #include <iostream>
 #include <iterator> // for std::istreambuf_iterator
-#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
@@ -43,68 +41,6 @@ constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET(100, 100);
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE(600, 500);
 
-constexpr unsigned int MAX_UINT = std::numeric_limits<unsigned int>::max();
-
-struct Triangle {
-  glm::vec3 normal;
-  std::array<glm::vec3, 3> vertices;
-};
-
-struct Indexed_Mesh {
-  struct Triangle {
-    uint32_t vertices[3];
-  };
-  std::vector<glm::vec3> vertices;
-  std::vector<Triangle> triangles;
-
-  std::optional<GPU_Indexed_Triangle_Mesh> to_gpu() {
-    size_t num_vertices = vertices.size();
-    size_t num_indices = triangles.size() * 3; // FIXME: avoid overflow
-    if ((num_vertices > MAX_UINT) || (num_indices > MAX_UINT)) {
-      // TODO: split into multiple GPU meshes?
-      std::cerr << "Failed to create GPU mesh, too many vertices or triangles" << std::endl;
-      return {};
-    }
-
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size() * sizeof(Triangle), triangles.data(), GL_STATIC_DRAW);
-
-    return GPU_Indexed_Triangle_Mesh{.m_VAO = VAO,
-                                     .m_VBO = VBO,
-                                     .m_EBO = EBO,
-                                     .m_num_vertices = static_cast<unsigned int>(num_vertices),
-                                     .m_num_indices = static_cast<unsigned int>(num_indices)};
-  }
-};
-
-static Indexed_Mesh generate_box(const glm::vec3 &min, const glm::vec3 &max) {
-  Indexed_Mesh mesh;
-  mesh.vertices = {min,
-                   {max.x, min.y, min.z},
-                   {max.x, max.y, min.z},
-                   {min.x, max.y, min.z},
-                   {min.x, min.y, max.z},
-                   {max.x, min.y, max.z},
-                   max,
-                   {min.x, max.y, max.z}};
-  mesh.triangles = {{0, 1, 2}, {0, 2, 3}, {1, 5, 6}, {1, 6, 2}, {5, 4, 7}, {5, 7, 6},
-                    {4, 0, 3}, {4, 3, 7}, {3, 2, 6}, {3, 6, 7}, {4, 5, 1}, {4, 1, 0}};
-  return mesh;
-}
-
 [[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs) {
   auto original_pos = ifs.tellg();
   ifs.seekg(0, std::ifstream::end);
@@ -116,45 +52,41 @@ static Indexed_Mesh generate_box(const glm::vec3 &min, const glm::vec3 &max) {
 }
 
 static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles) {
-  static_assert(sizeof(Triangle) == sizeof(float[4][3]),
-                "Incorrect size for Triangle struct"); // Normal + 3 vertices =
-                                                       // 4 * 3 floats
-  return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(Triangle) + sizeof(uint16_t));
+  return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(float[4][3]) + sizeof(uint16_t));
 }
 
 static std::vector<glm::vec3> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles) {
-  Triangle t;
   std::vector<glm::vec3> vertices;
   vertices.reserve(num_triangles * 3);
   for (uint32_t i = 0; i < num_triangles; i++) {
-    ifs.read((char *)&t, sizeof(Triangle));
+    ifs.seekg(sizeof(glm::vec3), std::ifstream::cur); // Skip normals
+    for (int j = 0; j < 3; j++) {
+      ifs.read((char *)&vertices.emplace_back(), sizeof(glm::vec3));
+    }
     // Skip "attribute byte count"
     ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
-
-    vertices.insert(vertices.end(), t.vertices.begin(), t.vertices.end());
   }
   return vertices;
 }
 
 static std::vector<glm::vec3> read_stl_mesh_file_ascii(std::ifstream &ifs) {
-  Triangle t;
   std::vector<glm::vec3> vertices;
+  std::string token;
   while (ifs.good()) {
-    std::string token;
     ifs >> token;
     if (token == "facet") {
-      ifs >> token; // expecting "normal"
-      ifs >> t.normal.x >> t.normal.y >> t.normal.z;
-      ifs >> token; // expecting "outer"
-      ifs >> token; // expecting "loop"
+      ifs >> token;                   // expecting "normal"
+      ifs >> token >> token >> token; // Skip normal
+      ifs >> token;                   // expecting "outer"
+      ifs >> token;                   // expecting "loop"
       for (int i = 0; i < 3; i++) {
         ifs >> token; // expecting "vertex"
-        ifs >> t.vertices[i].x >> t.vertices[i].y >> t.vertices[i].z;
+        glm::vec3 &vertex = vertices.emplace_back();
+        ifs >> vertex.x >> vertex.y >> vertex.z;
       }
       ifs >> token; // expecting "endloop"
       ifs >> token; // expecting "endfacet"
     }
-    vertices.insert(vertices.end(), t.vertices.begin(), t.vertices.end());
   }
   return vertices;
 }
@@ -207,13 +139,6 @@ GeoBox_App::GeoBox_App() {
     std::cerr << "Failed to initialize shaders" << std::endl;
     shutdown();
     std::exit(-1);
-  }
-
-  // Create default cube
-  Indexed_Mesh box = generate_box({-1, -1, -1}, {1, 1, 1});
-  std::optional<GPU_Indexed_Triangle_Mesh> box_gpu_mesh = box.to_gpu();
-  if (box_gpu_mesh.has_value()) {
-    m_gpu_indexed_meshes.push_back(box_gpu_mesh.value());
   }
 }
 
@@ -406,11 +331,9 @@ void GeoBox_App::render() {
   int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
-  for (const GPU_Triangle_Mesh &mesh : m_gpu_meshes) {
-    mesh.draw();
-  }
-  for (const GPU_Indexed_Triangle_Mesh &indexed_mesh : m_gpu_indexed_meshes) {
-    indexed_mesh.draw();
+  if (is_object_loaded) {
+    glBindVertexArray(m_VAO);
+    glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -460,6 +383,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     return;
   }
 
+  m_vertices = vertices.value();
+
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
@@ -467,17 +392,12 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   unsigned int VBO;
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, vertices->size() * sizeof(glm::vec3), vertices->data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(glm::vec3), m_vertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
 
-  if (vertices->size() <= std::numeric_limits<unsigned int>::max()) {
-    m_gpu_meshes.emplace_back(VAO, VBO, static_cast<unsigned int>(vertices->size()));
-  } else {
-    std::cerr << "Mesh exceeds maximum number of vertices: " << file_path << std::endl;
-    // TODO: maybe we can create multiple VAOs for large meshes?
-    // maybe that is why glDrawArrays accepts an offset and a count, really
-    // handy, something for the future
-  }
+  m_VAO = VAO;
+  m_VBO = VBO;
+  is_object_loaded = true;
 }
