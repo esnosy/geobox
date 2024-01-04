@@ -9,14 +9,12 @@ target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm st
 
 target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp)
 
-# https://www.baeldung.com/linux/cmake-cmake_install_prefix
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX
-      ${CMAKE_BINARY_DIR}/bin
-      CACHE PATH "" FORCE)
-endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-
-set_target_properties(geobox PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+# TODO: more efficient syncing of resources directory
+add_custom_target(
+  copy_resources ALL
+  COMMAND ${CMAKE_COMMAND} -E remove_directory $<TARGET_FILE_DIR:geobox>/resources
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources $<TARGET_FILE_DIR:geobox>/resources
+  COMMENT "Copying resources into binary directory")
 
 install(TARGETS geobox DESTINATION .)
 install(DIRECTORY resources DESTINATION .)
