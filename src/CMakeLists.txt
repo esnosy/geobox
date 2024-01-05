@@ -12,7 +12,7 @@ target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp)
 set(RESOURCES_TARGET_DIR $<TARGET_FILE_DIR:geobox>/resources)
 # TODO: more efficient syncing of resources directory
 add_custom_target(
-        copy_resources
+        copy_resources ALL
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${RESOURCES_TARGET_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/resources ${RESOURCES_TARGET_DIR}
         COMMENT "Copying resources into binary directory"
