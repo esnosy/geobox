@@ -14,7 +14,7 @@ public:
 private:
   GLFWwindow *m_window = nullptr;
 
-  unsigned m_default_shader_program;
+  unsigned int m_default_shader_program;
 
   // TODO: support more objects once we settle on a design
   bool is_object_loaded = false;
