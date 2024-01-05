@@ -1,9 +1,12 @@
+#include <cassert>
 #include <cmath>
 #include <cstdlib> // for std::exit
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator> // for std::istreambuf_iterator
 #include <optional>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -375,7 +378,6 @@ void GeoBox_App::shutdown() const {
   ImGui::DestroyContext();
   glfwTerminate();
 }
-
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   std::optional<std::vector<glm::vec3>> vertices = read_stl_mesh_file(file_path);
   if (!vertices.has_value()) {
@@ -407,6 +409,67 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
+
+  struct Node {
+    size_t first, last;
+    Node *left, *right;
+  };
+
+  // TODO: preallocate nodes with malloc
+
+  Node *root = new Node{
+      .first = 0,
+      .last = m_vertices.size() - 1,
+      .left = nullptr,
+      .right = nullptr,
+  };
+
+  unsigned int *bvh_indices = (unsigned int *)malloc(sizeof(unsigned int) * m_vertices.size());
+  for (unsigned int i = 0; i < m_vertices.size(); i++) {
+    bvh_indices[i] = i;
+  }
+
+  std::stack<Node *> stack;
+  stack.push(root);
+  while (!stack.empty()) {
+    Node *node = stack.top();
+    stack.pop();
+    if (node->last > node->first) {
+      // TODO: parition vertices
+      node->left = new Node{
+          .first = node->first,
+          .last = node->first + (node->last - node->first) / 2,
+          .left = nullptr,
+          .right = nullptr,
+      };
+      node->right = new Node{
+          .first = node->left->last + 1,
+          .last = node->last,
+          .left = nullptr,
+          .right = nullptr,
+      };
+      stack.push(node->left);
+      stack.push(node->right);
+    }
+  }
+
+  // Count and free nodes
+  stack.push(root);
+  int num_nodes = 1;
+  while (!stack.empty()) {
+    const Node *node = stack.top();
+    stack.pop();
+    if (node->left) {
+      num_nodes++;
+      stack.push(node->left);
+    }
+    if (node->right) {
+      num_nodes++;
+      stack.push(node->right);
+    }
+    delete node;
+  }
+  assert(num_nodes < (m_vertices.size() * 2) && m_vertices.size() > 0);
 
   m_VAO = VAO;
   m_VBO = VBO;
