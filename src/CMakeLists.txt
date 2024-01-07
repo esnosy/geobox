@@ -5,6 +5,13 @@ add_executable(geobox)
 target_compile_features(geobox PRIVATE cxx_std_20)
 set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 
+# Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT result)
+if (result)
+    set_target_properties(geobox PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif ()
+
 target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm stb_image)
 
 target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp bvh.cpp bvh.hpp)
