@@ -410,23 +410,23 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glEnableVertexAttribArray(0);
 
   struct Node {
-    size_t first, last;
+    unsigned int *first, *last;
     Node *left, *right;
   };
 
   // TODO: preallocate nodes with malloc
 
-  Node *root = new Node{
-      .first = 0,
-      .last = m_vertices.size() - 1,
-      .left = nullptr,
-      .right = nullptr,
-  };
-
   unsigned int *bvh_indices = (unsigned int *)malloc(sizeof(unsigned int) * m_vertices.size());
   for (unsigned int i = 0; i < m_vertices.size(); i++) {
     bvh_indices[i] = i;
   }
+
+  Node *root = new Node{
+      .first = bvh_indices,
+      .last = bvh_indices + m_vertices.size() - 1,
+      .left = nullptr,
+      .right = nullptr,
+  };
 
   std::stack<Node *> stack;
   stack.push(root);
@@ -438,8 +438,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
       // Calculate variance
       glm::vec3 mean_of_squares(0), mean(0);
       float num_node_vertices = static_cast<float>(node->last - node->first + 1);
-      for (size_t i = node->first; i <= node->last; i++) {
-        const glm::vec3 &v = m_vertices[bvh_indices[i]];
+      for (unsigned int *i = node->first; i <= node->last; i++) {
+        const glm::vec3 &v = m_vertices[*i];
         glm::vec3 tmp = v / num_node_vertices;
         mean += tmp;
         mean_of_squares += v * tmp;
@@ -460,11 +460,10 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
       // note that std::partition input range is not inclusive,
       // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
       // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
-      unsigned int *second_group_first_ptr =
-          std::partition(bvh_indices + node->first, bvh_indices + node->last + 1,
+      unsigned int *second_group_first =
+          std::partition(node->first, node->last + 1,
                          [this, axis, split_pos](unsigned int i) { return m_vertices[i][axis] < split_pos; });
 
-      size_t second_group_first = second_group_first_ptr - bvh_indices;
       // Abort current node if partitioning fails
       if (second_group_first == node->first || second_group_first == (node->last + 1)) {
         continue;
