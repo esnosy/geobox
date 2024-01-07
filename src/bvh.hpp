@@ -21,7 +21,7 @@ private:
   Node *m_current_free_node = nullptr;
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
-  Node *new_node(Node &&);
+  Node *new_node();
 
 public:
   BVH() = delete;

@@ -6,10 +6,7 @@
 
 #include "bvh.hpp"
 
-BVH::Node *BVH::new_node(Node &&init) {
-  *m_current_free_node = init;
-  return m_current_free_node++;
-}
+BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
 static BVH::Node::AABB calc_aabb_indirect(std::vector<glm::vec3> const &points, unsigned int const *first,
                                           unsigned int const *last) {
@@ -44,12 +41,13 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
   }
 
   // Create root
-  m_root = new_node({
+  m_root = new_node();
+  *m_root = {
       .first = m_primitive_indices,
       .last = m_primitive_indices + points.size() - 1,
       .left = nullptr,
       .right = nullptr,
-  });
+  };
 
   // Build tree
   std::stack<Node *> stack;
@@ -101,18 +99,20 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
       continue;
     }
 
-    node->left = new_node({
+    node->left = new_node();
+    *(node->left) = {
         .first = node->first,
         .last = second_group_first - 1,
         .left = nullptr,
         .right = nullptr,
-    });
-    node->right = new_node({
+    };
+    node->right = new_node();
+    *(node->right) = {
         .first = second_group_first,
         .last = node->last,
         .left = nullptr,
         .right = nullptr,
-    });
+    };
     stack.push(node->left);
     stack.push(node->right);
   }
