@@ -435,7 +435,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     Node *node = stack.top();
     stack.pop();
     if (node->last > node->first) {
-      // TODO: parition vertices
+      // TODO: partition vertices
       node->left = new Node{
           .first = node->first,
           .last = node->first + (node->last - node->first) / 2,
