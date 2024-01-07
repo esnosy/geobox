@@ -7,8 +7,8 @@ set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)
 include(CheckIPOSupported)
-check_ipo_supported(RESULT result)
-if (result)
+check_ipo_supported(RESULT is_ipo_supported)
+if (is_ipo_supported)
     set_target_properties(geobox PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif ()
 
