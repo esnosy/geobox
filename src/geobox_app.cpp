@@ -414,19 +414,25 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     Node *left, *right;
   };
 
-  // TODO: preallocate nodes with malloc
+  Node *nodes = (Node *)malloc(sizeof(Node) * (2 * m_vertices.size() - 1));
+  Node *current_free_node = nodes;
+
+  auto new_node = [&current_free_node](Node &&init) {
+    *current_free_node = init;
+    return current_free_node++;
+  };
 
   unsigned int *bvh_indices = (unsigned int *)malloc(sizeof(unsigned int) * m_vertices.size());
   for (unsigned int i = 0; i < m_vertices.size(); i++) {
     bvh_indices[i] = i;
   }
 
-  Node *root = new Node{
+  Node *root = new_node({
       .first = bvh_indices,
       .last = bvh_indices + m_vertices.size() - 1,
       .left = nullptr,
       .right = nullptr,
-  };
+  });
 
   std::stack<Node *> stack;
   stack.push(root);
@@ -469,18 +475,18 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
         continue;
       }
 
-      node->left = new Node{
+      node->left = new_node({
           .first = node->first,
           .last = second_group_first - 1,
           .left = nullptr,
           .right = nullptr,
-      };
-      node->right = new Node{
+      });
+      node->right = new_node({
           .first = second_group_first,
           .last = node->last,
           .left = nullptr,
           .right = nullptr,
-      };
+      });
       stack.push(node->left);
       stack.push(node->right);
     }
@@ -500,10 +506,10 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
       num_nodes++;
       stack.push(node->right);
     }
-    delete node;
   }
   assert(num_nodes < (m_vertices.size() * 2) && m_vertices.size() > 0);
   free(bvh_indices);
+  free(nodes);
 
   m_VAO = VAO;
   m_VBO = VBO;
