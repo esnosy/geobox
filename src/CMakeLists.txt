@@ -9,6 +9,7 @@ set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT is_ipo_supported)
 if (is_ipo_supported)
+    message(STATUS "Enabling Link-Time Optimization")
     set_target_properties(geobox PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif ()
 
