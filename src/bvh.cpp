@@ -2,6 +2,8 @@
 #include <iostream>
 #include <stack>
 
+#include <glm/common.hpp>
+
 #include "bvh.hpp"
 
 BVH::Node *BVH::new_node(Node &&init) {
@@ -9,7 +11,23 @@ BVH::Node *BVH::new_node(Node &&init) {
   return m_current_free_node++;
 }
 
-BVH::BVH(const std::vector<glm::vec3> &points) {
+static BVH::Node::AABB calc_aabb_indirect(std::vector<glm::vec3> const &points, unsigned int const *first,
+                                          unsigned int const *last) {
+  if (points.empty()) {
+    return {};
+  }
+  BVH::Node::AABB aabb{.min = points[*first], .max = points[*first]};
+  for (unsigned int const *i = first; i <= last; i++) {
+    aabb.min = glm::min(aabb.min, points[*i]);
+  }
+  // Separate loop, so even without compiler optimization, similar instructions are in a loop
+  for (unsigned int const *i = first; i <= last; i++) {
+    aabb.max = glm::max(aabb.max, points[*i]);
+  }
+  return aabb;
+}
+
+BVH::BVH(std::vector<glm::vec3> const &points) {
   if (points.empty()) {
     std::cerr << "Empty points, aborting creation of BVH..." << std::endl;
     return;
@@ -40,56 +58,63 @@ BVH::BVH(const std::vector<glm::vec3> &points) {
     Node *node = stack.top();
     stack.pop();
     assert(node->first <= node->last);
-    if (node->first < node->last) {
-      // Calculate variance
-      glm::vec3 mean_of_squares(0), mean(0);
-      float num_node_vertices = static_cast<float>(node->last - node->first + 1);
-      for (unsigned int *i = node->first; i <= node->last; i++) {
-        const glm::vec3 &v = points[*i];
-        glm::vec3 tmp = v / num_node_vertices;
-        mean += tmp;
-        mean_of_squares += v * tmp;
-      }
-      glm::vec3 variance = mean_of_squares - mean * mean;
 
-      // Determine the axis of greatest variance and split position
-      std::uint8_t axis = 0;
-      if (variance[1] > variance[0]) {
-        axis = 1;
-      }
-      if (variance[2] > variance[axis]) {
-        axis = 2;
-      }
-      float split_pos = mean[axis];
+    // Calculate AABB
+    node->aabb = calc_aabb_indirect(points, node->first, node->last);
 
-      // Partition vertices
-      // note that std::partition input range is not inclusive,
-      // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
-      // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
-      unsigned int *second_group_first =
-          std::partition(node->first, node->last + 1,
-                         [&points, axis, split_pos](unsigned int i) { return points[i][axis] < split_pos; });
-
-      // Abort current node if partitioning fails
-      if (second_group_first == node->first || second_group_first == (node->last + 1)) {
-        continue;
-      }
-
-      node->left = new_node({
-          .first = node->first,
-          .last = second_group_first - 1,
-          .left = nullptr,
-          .right = nullptr,
-      });
-      node->right = new_node({
-          .first = second_group_first,
-          .last = node->last,
-          .left = nullptr,
-          .right = nullptr,
-      });
-      stack.push(node->left);
-      stack.push(node->right);
+    // Skip splitting of nodes that contain a single primitive
+    if (node->first == node->last) {
+      continue;
     }
+
+    // Calculate variance
+    glm::vec3 mean_of_squares(0), mean(0);
+    float num_node_vertices = static_cast<float>(node->last - node->first + 1);
+    for (unsigned int *i = node->first; i <= node->last; i++) {
+      const glm::vec3 &v = points[*i];
+      glm::vec3 tmp = v / num_node_vertices;
+      mean += tmp;
+      mean_of_squares += v * tmp;
+    }
+    glm::vec3 variance = mean_of_squares - mean * mean;
+
+    // Determine the axis of greatest variance and split position
+    std::uint8_t axis = 0;
+    if (variance[1] > variance[0]) {
+      axis = 1;
+    }
+    if (variance[2] > variance[axis]) {
+      axis = 2;
+    }
+    float split_pos = mean[axis];
+
+    // Partition vertices
+    // note that std::partition input range is not inclusive,
+    // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
+    // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
+    unsigned int *second_group_first =
+        std::partition(node->first, node->last + 1,
+                       [&points, axis, split_pos](unsigned int i) { return points[i][axis] < split_pos; });
+
+    // Abort current node if partitioning fails
+    if (second_group_first == node->first || second_group_first == (node->last + 1)) {
+      continue;
+    }
+
+    node->left = new_node({
+        .first = node->first,
+        .last = second_group_first - 1,
+        .left = nullptr,
+        .right = nullptr,
+    });
+    node->right = new_node({
+        .first = second_group_first,
+        .last = node->last,
+        .left = nullptr,
+        .right = nullptr,
+    });
+    stack.push(node->left);
+    stack.push(node->right);
   }
 }
 

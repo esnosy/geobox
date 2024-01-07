@@ -8,6 +8,10 @@
 class BVH {
 public:
   struct Node {
+    struct AABB {
+      glm::vec3 min, max;
+    };
+    AABB aabb;
     unsigned int *first, *last;
     Node *left, *right;
   };
@@ -26,7 +30,7 @@ public:
   BVH(BVH const &) = delete;
   BVH &operator=(BVH const &) = delete;
 
-  explicit BVH(const std::vector<glm::vec3> &points);
+  explicit BVH(std::vector<glm::vec3> const &points);
   ~BVH();
   bool is_empty() const;
   size_t count_nodes() const;
