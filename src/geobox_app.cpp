@@ -470,6 +470,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     delete node;
   }
   assert(num_nodes < (m_vertices.size() * 2) && m_vertices.size() > 0);
+  free(bvh_indices);
 
   m_VAO = VAO;
   m_VBO = VBO;
