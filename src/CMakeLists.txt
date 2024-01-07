@@ -7,7 +7,7 @@ set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 
 target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm stb_image)
 
-target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp)
+target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp bvh.cpp bvh.hpp)
 
 set(RESOURCES_TARGET_DIR $<TARGET_FILE_DIR:geobox>/resources)
 # TODO: more efficient syncing of resources directory

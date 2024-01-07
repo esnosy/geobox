@@ -1,11 +1,8 @@
-#include <algorithm> // for std::partition
-#include <cassert>
 #include <cmath>
 #include <cstdlib> // for std::exit
 #include <fstream>
 #include <iostream>
 #include <optional>
-#include <stack>
 #include <string>
 #include <vector>
 
@@ -26,6 +23,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "bvh.hpp"
 #include "geobox_app.hpp"
 
 constexpr int INIT_WINDOW_WIDTH = 800;
@@ -409,107 +407,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
 
-  struct Node {
-    unsigned int *first, *last;
-    Node *left, *right;
-  };
-
-  Node *nodes = (Node *)malloc(sizeof(Node) * (2 * m_vertices.size() - 1));
-  Node *current_free_node = nodes;
-
-  auto new_node = [&current_free_node](Node &&init) {
-    *current_free_node = init;
-    return current_free_node++;
-  };
-
-  unsigned int *bvh_indices = (unsigned int *)malloc(sizeof(unsigned int) * m_vertices.size());
-  for (unsigned int i = 0; i < m_vertices.size(); i++) {
-    bvh_indices[i] = i;
-  }
-
-  Node *root = new_node({
-      .first = bvh_indices,
-      .last = bvh_indices + m_vertices.size() - 1,
-      .left = nullptr,
-      .right = nullptr,
-  });
-
-  std::stack<Node *> stack;
-  stack.push(root);
-  while (!stack.empty()) {
-    Node *node = stack.top();
-    stack.pop();
-    assert(node->first <= node->last);
-    if (node->last > node->first) {
-      // Calculate variance
-      glm::vec3 mean_of_squares(0), mean(0);
-      float num_node_vertices = static_cast<float>(node->last - node->first + 1);
-      for (unsigned int *i = node->first; i <= node->last; i++) {
-        const glm::vec3 &v = m_vertices[*i];
-        glm::vec3 tmp = v / num_node_vertices;
-        mean += tmp;
-        mean_of_squares += v * tmp;
-      }
-      glm::vec3 variance = mean_of_squares - mean * mean;
-
-      // Determine the axis of greatest variance and split position
-      std::uint8_t axis = 0;
-      if (variance[1] > variance[0]) {
-        axis = 1;
-      }
-      if (variance[2] > variance[axis]) {
-        axis = 2;
-      }
-      float split_pos = mean[axis];
-
-      // Partition vertices
-      // note that std::partition input range is not inclusive,
-      // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
-      // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
-      unsigned int *second_group_first =
-          std::partition(node->first, node->last + 1,
-                         [this, axis, split_pos](unsigned int i) { return m_vertices[i][axis] < split_pos; });
-
-      // Abort current node if partitioning fails
-      if (second_group_first == node->first || second_group_first == (node->last + 1)) {
-        continue;
-      }
-
-      node->left = new_node({
-          .first = node->first,
-          .last = second_group_first - 1,
-          .left = nullptr,
-          .right = nullptr,
-      });
-      node->right = new_node({
-          .first = second_group_first,
-          .last = node->last,
-          .left = nullptr,
-          .right = nullptr,
-      });
-      stack.push(node->left);
-      stack.push(node->right);
-    }
-  }
-
-  // Count and free nodes
-  stack.push(root);
-  int num_nodes = 1;
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    if (node->left) {
-      num_nodes++;
-      stack.push(node->left);
-    }
-    if (node->right) {
-      num_nodes++;
-      stack.push(node->right);
-    }
-  }
-  assert(num_nodes < (m_vertices.size() * 2) && m_vertices.size() > 0);
-  free(bvh_indices);
-  free(nodes);
+  BVH bvh(m_vertices);
+  std::cout << bvh.count_nodes() << " " << (2 * m_vertices.size()) << std::endl;
 
   m_VAO = VAO;
   m_VBO = VBO;
