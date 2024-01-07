@@ -1,10 +1,9 @@
+#include <algorithm> // for std::partition
 #include <cassert>
 #include <cmath>
 #include <cstdlib> // for std::exit
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <iterator> // for std::istreambuf_iterator
 #include <optional>
 #include <stack>
 #include <string>
@@ -436,15 +435,49 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     stack.pop();
     assert(node->first <= node->last);
     if (node->last > node->first) {
-      // TODO: partition vertices
+      // Calculate variance
+      glm::vec3 mean_of_squares(0), mean(0);
+      float num_node_vertices = static_cast<float>(node->last - node->first + 1);
+      for (size_t i = node->first; i <= node->last; i++) {
+        const glm::vec3 &v = m_vertices[bvh_indices[i]];
+        glm::vec3 tmp = v / num_node_vertices;
+        mean += tmp;
+        mean_of_squares += v * tmp;
+      }
+      glm::vec3 variance = mean_of_squares - mean * mean;
+
+      // Determine the axis of greatest variance and split position
+      std::uint8_t axis = 0;
+      if (variance[1] > variance[0]) {
+        axis = 1;
+      }
+      if (variance[2] > variance[axis]) {
+        axis = 2;
+      }
+      float split_pos = mean[axis];
+
+      // Partition vertices
+      // note that std::partition input range is not inclusive,
+      // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
+      // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
+      unsigned int *second_group_first_ptr =
+          std::partition(bvh_indices + node->first, bvh_indices + node->last + 1,
+                         [this, axis, split_pos](unsigned int i) { return m_vertices[i][axis] < split_pos; });
+
+      size_t second_group_first = second_group_first_ptr - bvh_indices;
+      // Abort current node if partitioning fails
+      if (second_group_first == node->first || second_group_first == (node->last + 1)) {
+        continue;
+      }
+
       node->left = new Node{
           .first = node->first,
-          .last = node->first + (node->last - node->first) / 2,
+          .last = second_group_first - 1,
           .left = nullptr,
           .right = nullptr,
       };
       node->right = new Node{
-          .first = node->left->last + 1,
+          .first = second_group_first,
           .last = node->last,
           .left = nullptr,
           .right = nullptr,
