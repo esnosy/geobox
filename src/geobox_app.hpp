@@ -17,7 +17,7 @@ private:
   unsigned int m_default_shader_program;
 
   // TODO: support more objects once we settle on a design
-  bool is_object_loaded = false;
+  bool m_is_object_loaded = false;
 
   unsigned int m_VAO;
   // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later

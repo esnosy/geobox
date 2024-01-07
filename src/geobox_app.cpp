@@ -331,7 +331,7 @@ void GeoBox_App::render() {
   int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
-  if (is_object_loaded) {
+  if (m_is_object_loaded) {
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
   }
@@ -388,7 +388,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   }
 
   // Free old GPU data if needed
-  if (is_object_loaded) {
+  if (m_is_object_loaded) {
     glDeleteVertexArrays(1, &m_VAO);
     glDeleteBuffers(1, &m_VBO);
   }
@@ -412,5 +412,5 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   m_VAO = VAO;
   m_VBO = VBO;
-  is_object_loaded = true;
+  m_is_object_loaded = true;
 }
