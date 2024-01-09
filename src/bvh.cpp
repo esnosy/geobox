@@ -1,10 +1,99 @@
-#include <algorithm> // for std::partition
+#include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
+#include <cmath>     // for std::abs
 #include <iostream>
+#include <limits> // for std::numeric_limits
 #include <stack>
+#include <tuple> // for std::tie
 
-#include <glm/common.hpp>
+#include <glm/common.hpp> // for glm::min and glm::max
 
 #include "bvh.hpp"
+
+static bool is_close(float a, float b) {
+  // https://isocpp.org/wiki/faq/newbie#floating-point-arith
+  constexpr float epsilon = 1e-5;
+  return std::abs(a - b) <= epsilon * std::abs(a);
+}
+
+struct Ray {
+  glm::vec3 origin, direction;
+};
+
+static float min_component(glm::vec3 const &v) { return std::min(v.x, std::min(v.y, v.z)); }
+static float max_component(glm::vec3 const &v) { return std::max(v.x, std::min(v.y, v.z)); }
+static bool is_not_all_zeros(glm::vec3 const &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
+
+static float ray_aabb_intersection(Ray const &ray, BVH::Node::AABB const &aabb) {
+  assert(is_not_all_zeros(ray.direction));
+  // ray-aabb intersection:
+  // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
+  // https://web.archive.org/web/20240108120351/https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
+  glm::vec3 t_slab_min(0);
+  glm::vec3 t_slab_max(std::numeric_limits<float>::infinity());
+  for (int i = 0; i < 3; i++) {
+    if (!is_close(ray.direction[i], 0)) {
+      // the use of std::tie https://stackoverflow.com/a/74057204/8094047
+      std::tie(t_slab_min[i], t_slab_max[i]) = std::minmax((aabb.min[i] - ray.origin[i]) / ray.direction[i],
+                                                           (aabb.max[i] - ray.origin[i]) / ray.direction[i]);
+    }
+  }
+  float t_min = std::max(max_component(t_slab_min), 0.0f);
+  float t_max = min_component(t_slab_max);
+  return std::min(t_min, t_max);
+}
+
+#ifdef TEST_RAY_AABB_INTERSECTION
+int main() {
+  BVH::Node::AABB aabb{.min = glm::vec3(-1), .max = glm::vec3(1)};
+
+  struct Test_Case {
+    Ray ray;
+    BVH::Node::AABB aabb;
+    bool does_intersect;
+  };
+
+  Test_Case cases[] = {
+      {{glm::vec3(2), glm::vec3(-1)}, aabb, true},
+      {{glm::vec3(2), glm::vec3(1)}, aabb, false},
+      {{glm::vec3(-2), glm::vec3(-1)}, aabb, false},
+      {{glm::vec3(-2), glm::vec3(1)}, aabb, true},
+      // Some edge cases,
+      {{aabb.min - glm::vec3(0), glm::vec3(-1)}, aabb, true},
+      {{aabb.min - glm::vec3(0), glm::vec3(1)}, aabb, true},
+      {{aabb.min - glm::vec3(0.0001), glm::vec3(-1)}, aabb, false},
+      {{aabb.min - glm::vec3(0.0001), glm::vec3(1)}, aabb, true},
+      {{aabb.min + glm::vec3(0.0001), glm::vec3(1)}, aabb, true},
+      {{aabb.min + glm::vec3(0.0001), glm::vec3(-1)}, aabb, true},
+      {{aabb.min - glm::vec3(0, 0, 3), glm::vec3(0, 0, 1)}, aabb, true},
+      {{glm::vec3(0, 0, 1), glm::vec3(0, 0, 1)}, aabb, true},
+      {{glm::vec3(0, 0, 1), glm::vec3(1, 0, 0)}, aabb, true},
+      {{glm::vec3(0, 0, 1), glm::vec3(0, 1, 0)}, aabb, true},
+      // Other case
+      {{glm::vec3(0), glm::vec3(0, 0, 1)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(0, 1, 0)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(1, 0, 0)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(-1, 0, 0)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(0, -1, 0)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(0, 0, -1)}, aabb, true},
+      {{glm::vec3(0), glm::vec3(1, 1, 1)}, aabb, true},
+      {{glm::vec3(0, 0, 2), glm::vec3(0, 0, 1)}, aabb, false},
+      {{glm::vec3(0, 0, -2), glm::vec3(0, 0, -1)}, aabb, false},
+      {{glm::vec3(2, -2, -2), glm::vec3(2, -2, -2)}, aabb, false},
+      {{glm::vec3(2, -2, -2), -glm::vec3(2, -2, -2)}, aabb, true},
+  };
+
+  int i = 0;
+  float t;
+  for (Test_Case const &c : cases) {
+    std::cout << "Test Case: " << i << std::endl;
+    t = ray_aabb_intersection(c.ray, c.aabb);
+    assert((t >= 0) == c.does_intersect);
+    i++;
+  }
+
+  return 0;
+}
+#endif
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 

@@ -28,3 +28,13 @@ add_custom_target(
 install(TARGETS geobox DESTINATION .)
 install(DIRECTORY resources DESTINATION .)
 include(CPack)
+
+
+add_executable(test_ray_aabb_intersection
+        bvh.cpp
+        bvh.hpp
+)
+target_link_libraries(test_ray_aabb_intersection PRIVATE glm::glm)
+target_compile_features(test_ray_aabb_intersection PRIVATE cxx_std_20)
+set_target_properties(test_ray_aabb_intersection PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(test_ray_aabb_intersection PRIVATE TEST_RAY_AABB_INTERSECTION)
