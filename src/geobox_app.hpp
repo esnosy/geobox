@@ -23,10 +23,10 @@ private:
   // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later
   // VAO references VBO and EBO so updates will be reflected when VAO is bound again
   unsigned int m_VBO;
-  // unsigned int m_EBO;
+  unsigned int m_EBO;
 
   std::vector<glm::vec3> m_vertices;
-  // std::vector<unsigned int[3]> m_triangles;
+  std::vector<unsigned int> m_indices;
 
   void init_glfw();
   void init_glad() const;

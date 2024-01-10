@@ -1,11 +1,13 @@
 #include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
 #include <cmath>     // for std::abs
+#include <functional>
 #include <iostream>
 #include <limits> // for std::numeric_limits
 #include <stack>
 #include <tuple> // for std::tie
 
 #include <glm/common.hpp> // for glm::min and glm::max
+#include <glm/gtx/norm.hpp>
 
 #include "bvh.hpp"
 
@@ -94,6 +96,23 @@ int main() {
   return 0;
 }
 #endif
+
+static glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+  return glm::clamp(point, aabb.min, aabb.max);
+}
+
+static float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+  return glm::distance2(point, closest_point_on_aabb(point, aabb));
+}
+
+struct Sphere {
+  glm::vec3 center;
+  float radius;
+};
+
+static bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
+  return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
+}
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
@@ -244,4 +263,24 @@ size_t BVH::count_nodes() const {
     }
   }
   return num_nodes;
+}
+
+void BVH::foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const {
+  Sphere sphere{.center = v, .radius = range};
+  std::stack<Node *> stack;
+  stack.push(m_root);
+  while (!stack.empty()) {
+    const Node *node = stack.top();
+    stack.pop();
+    if (!sphere_aabb_intersection(sphere, node->aabb))
+      continue;
+    if (node->is_leaf()) {
+      for (unsigned int *i = node->first; i <= node->last; i++) {
+        callback(*i);
+      }
+    } else {
+      stack.push(node->left);
+      stack.push(node->right);
+    }
+  }
 }

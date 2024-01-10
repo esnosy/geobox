@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <optional>
 #include <vector>
 
@@ -14,6 +15,7 @@ public:
     AABB aabb;
     unsigned int *first, *last;
     Node *left, *right;
+    [[nodiscard]] bool is_leaf() const { return (left == nullptr) && (right == nullptr); }
   };
 
 private:
@@ -34,4 +36,5 @@ public:
   ~BVH();
   bool is_empty() const;
   size_t count_nodes() const;
+  void foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const;
 };

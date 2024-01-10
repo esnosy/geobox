@@ -19,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/io.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -333,7 +334,7 @@ void GeoBox_App::render() {
 
   if (m_is_object_loaded) {
     glBindVertexArray(m_VAO);
-    glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -391,9 +392,41 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   if (m_is_object_loaded) {
     glDeleteVertexArrays(1, &m_VAO);
     glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_EBO);
   }
 
   m_vertices = vertices.value();
+
+  BVH bvh(m_vertices);
+
+  std::vector<unsigned int> indices(m_vertices.size());
+  std::vector<bool> is_remapped_vec(m_vertices.size(), false);
+  std::vector<glm::vec3> unique_vertices;
+  unique_vertices.reserve(m_vertices.size());
+
+  unsigned int final_unique_vertex_index = 0;
+  for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < m_vertices.size();
+       original_unique_vertex_index++) {
+    if (is_remapped_vec[original_unique_vertex_index])
+      continue;
+    glm::vec3 const &unique_vertex = m_vertices[original_unique_vertex_index];
+    constexpr float range = 0.0001f;
+    bvh.foreach_in_range(unique_vertex, range,
+                         [final_unique_vertex_index, &is_remapped_vec, &indices, &unique_vertex,
+                          this](unsigned int duplicate_vertex_index) {
+                           if (glm::distance2(unique_vertex, m_vertices[duplicate_vertex_index]) > (range * range))
+                             return;
+                           if (!is_remapped_vec[duplicate_vertex_index]) {
+                             indices[duplicate_vertex_index] = final_unique_vertex_index;
+                             is_remapped_vec[duplicate_vertex_index] = true;
+                           }
+                         });
+    final_unique_vertex_index++;
+    unique_vertices.push_back(unique_vertex);
+  }
+  unique_vertices.shrink_to_fit();
+
+  std::cout << "Num unique vertices = " << unique_vertices.size() << std::endl;
 
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
@@ -402,15 +435,21 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   unsigned int VBO;
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(glm::vec3), m_vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, unique_vertices.size() * sizeof(glm::vec3), unique_vertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
   glEnableVertexAttribArray(0);
 
-  BVH bvh(m_vertices);
-  std::cout << bvh.count_nodes() << " " << (2 * m_vertices.size()) << std::endl;
+  unsigned int EBO;
+  glGenBuffers(1, &EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+  m_vertices = unique_vertices;
+  m_indices = indices;
 
   m_VAO = VAO;
   m_VBO = VBO;
+  m_EBO = EBO;
   m_is_object_loaded = true;
 }
