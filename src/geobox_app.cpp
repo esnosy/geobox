@@ -398,6 +398,9 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_vertices = vertices.value();
 
   BVH bvh(m_vertices);
+  assert(bvh.count_primitives() == m_vertices.size());
+  std::cout << "Num nodes = " << bvh.count_nodes() << std::endl;
+  std::cout << "Max node size = " << bvh.calc_max_node_size() << std::endl;
 
   std::vector<unsigned int> indices(m_vertices.size());
   std::vector<bool> is_remapped_vec(m_vertices.size(), false);

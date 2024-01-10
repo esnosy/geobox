@@ -16,6 +16,10 @@ public:
     unsigned int *first, *last;
     Node *left, *right;
     [[nodiscard]] bool is_leaf() const { return (left == nullptr) && (right == nullptr); }
+    [[nodiscard]] unsigned int num_primitives() const {
+      assert(last >= first);
+      return last - first + 1;
+    }
   };
 
 private:
@@ -36,5 +40,8 @@ public:
   ~BVH();
   bool is_empty() const;
   size_t count_nodes() const;
+  [[nodiscard]] unsigned int calc_max_node_size() const;
+  [[nodiscard]] unsigned int count_primitives() const;
+
   void foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const;
 };

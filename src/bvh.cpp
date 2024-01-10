@@ -265,6 +265,40 @@ size_t BVH::count_nodes() const {
   return num_nodes;
 }
 
+unsigned int BVH::calc_max_node_size() const {
+  unsigned int max_node_size = 0;
+  std::stack<Node *> stack;
+  stack.push(m_root);
+  while (!stack.empty()) {
+    const Node *node = stack.top();
+    stack.pop();
+    if (node->is_leaf()) {
+      max_node_size = std::max(max_node_size, node->num_primitives());
+    } else {
+      stack.push(node->left);
+      stack.push(node->right);
+    }
+  }
+  return max_node_size;
+}
+
+unsigned int BVH::count_primitives() const {
+  unsigned int num_primitives = 0;
+  std::stack<Node *> stack;
+  stack.push(m_root);
+  while (!stack.empty()) {
+    const Node *node = stack.top();
+    stack.pop();
+    if (node->is_leaf()) {
+      num_primitives += node->num_primitives();
+    } else {
+      stack.push(node->left);
+      stack.push(node->right);
+    }
+  }
+  return num_primitives;
+}
+
 void BVH::foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const {
   Sphere sphere{.center = v, .radius = range};
   std::stack<Node *> stack;
