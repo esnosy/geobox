@@ -27,6 +27,10 @@
 #include "bvh.hpp"
 #include "geobox_app.hpp"
 
+#ifdef ENABLE_SUPERLUMINAL_PERF_API
+#include <Superluminal/PerformanceAPI.h>
+#endif
+
 constexpr int INIT_WINDOW_WIDTH = 800;
 constexpr int INIT_WINDOW_HEIGHT = 600;
 constexpr const char *WINDOW_TITLE = "GeoBox";
@@ -377,6 +381,10 @@ void GeoBox_App::shutdown() const {
   glfwTerminate();
 }
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
+#ifdef ENABLE_SUPERLUMINAL_PERF_API
+  PerformanceAPI_BeginEvent(__FUNCTION__, nullptr, PERFORMANCEAPI_DEFAULT_COLOR);
+  PERFORMANCEAPI_INSTRUMENT_FUNCTION();
+#endif
   std::optional<std::vector<glm::vec3>> vertices = read_stl_mesh_file(file_path);
   if (!vertices.has_value()) {
     std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
@@ -455,4 +463,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_VBO = VBO;
   m_EBO = EBO;
   m_is_object_loaded = true;
+#ifdef ENABLE_SUPERLUMINAL_PERF_API
+  PerformanceAPI_EndEvent();
+#endif
 }
