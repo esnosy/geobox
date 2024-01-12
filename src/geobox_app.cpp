@@ -145,6 +145,7 @@ GeoBox_App::GeoBox_App() {
     shutdown();
     std::exit(-1);
   }
+  glEnable(GL_DEPTH_TEST);
 }
 
 void GeoBox_App::main_loop() {
@@ -333,7 +334,7 @@ void GeoBox_App::render() {
   }
 
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(m_default_shader_program);
 
@@ -478,6 +479,23 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   m_vertices = unique_vertices;
   m_indices = indices;
+
+  m_vertex_normals.resize(m_vertices.size());
+  for (unsigned int i = 0; i < m_indices.size(); i += 3) {
+    const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
+    const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
+    const glm::vec3 &c = unique_vertices[m_indices[i + 2]];
+    glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
+    // FIXME: take into account the case that the number of triangles connected to a vertex is not always 3
+    // hint: maybe calculate the average "incrementally" or keep track of triangle count in an array, I prefer the
+    // first, because it avoids consuming more memory I still have to figure out again how to calculate average without
+    // keeping track of count, I remember vaguely that it was possible
+    for (int j = 0; j < 3; j++)
+      m_vertex_normals[m_indices[i + j]] += triangle_normal / 3.0f;
+  }
+
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  glEnableVertexAttribArray(1);
 
   m_VAO = VAO;
   m_VBO = VBO;

@@ -29,6 +29,7 @@ private:
 
   std::vector<glm::vec3> m_vertices;
   std::vector<unsigned int> m_indices;
+  std::vector<glm::vec3> m_vertex_normals;
 
   glm::vec3 m_camera_pos = {0, 0, 3};
   glm::vec3 m_camera_front = {0, 0, -1};
