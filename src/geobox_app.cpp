@@ -138,8 +138,8 @@ static std::optional<std::string> read_file(const std::string &file_path) {
 GeoBox_App::GeoBox_App() {
   init_glfw();
   init_glad();
-  init_imgui();
   init_glfw_callbacks();
+  init_imgui();
   if (!init_shaders()) {
     std::cerr << "Failed to initialize shaders" << std::endl;
     shutdown();
@@ -149,6 +149,11 @@ GeoBox_App::GeoBox_App() {
 
 void GeoBox_App::main_loop() {
   while (!glfwWindowShouldClose(m_window)) {
+    // Update delta time
+    float current_frame_time = static_cast<float>(glfwGetTime());
+    m_delta_time = current_frame_time - m_last_frame_time;
+    m_last_frame_time = current_frame_time;
+
     // Poll events
     glfwPollEvents();
 
@@ -229,6 +234,15 @@ void GeoBox_App::init_glfw_callbacks() {
   glfwSetWindowRefreshCallback(m_window, [](GLFWwindow *w) {
     static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->window_refresh_callback(w);
   });
+  glfwSetCursorPosCallback(m_window, [](GLFWwindow *w, double x_pos, double y_pos) {
+    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->cursor_pos_callback(w, x_pos, y_pos);
+  });
+  glfwSetMouseButtonCallback(m_window, [](GLFWwindow *w, int button, int action, int mods) {
+    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->mouse_button_callback(w, button, action, mods);
+  });
+  glfwSetScrollCallback(m_window, [](GLFWwindow *w, double x_offset, double y_offset) {
+    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->scroll_callback(w, x_offset, y_offset);
+  });
 }
 
 bool GeoBox_App::init_shaders() {
@@ -296,7 +310,18 @@ void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/, int wi
 }
 
 void GeoBox_App::process_input() {
-  // TODO: process input
+  ImGuiIO &io = ImGui::GetIO();
+  if (io.WantCaptureMouse)
+    return;
+  const float camera_speed = 2.5f * m_delta_time; // adjust accordingly
+  if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
+    m_camera_pos += camera_speed * m_camera_front;
+  if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
+    m_camera_pos -= camera_speed * m_camera_front;
+  if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS)
+    m_camera_pos -= glm::normalize(glm::cross(m_camera_front, m_up)) * camera_speed;
+  if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
+    m_camera_pos += glm::normalize(glm::cross(m_camera_front, m_up)) * camera_speed;
 }
 
 void GeoBox_App::render() {
@@ -319,15 +344,9 @@ void GeoBox_App::render() {
   glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
 
   glm::mat4 model(1.0f);
-  model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-
-  glm::mat4 view = glm::mat4(1.0f);
-  // note that we're translating the scene in the reverse direction of where we
-  // want to move
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
-
+  glm::mat4 view = glm::lookAt(m_camera_pos, m_camera_pos + m_camera_front, m_up);
   glm::mat4 projection;
-  projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+  projection = glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.1f, 100.0f);
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
   glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(model));
@@ -466,4 +485,48 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
   PerformanceAPI_EndEvent();
 #endif
+}
+void GeoBox_App::cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (io.WantCaptureMouse)
+    return;
+  if (m_is_left_mouse_down) {
+    if (m_last_mouse_pos.has_value()) {
+      float x_offset = x_pos - m_last_mouse_pos->x;
+      float y_offset = m_last_mouse_pos->y - y_pos; // reversed since y-coordinates range from bottom to top
+      constexpr float mouse_sensitivity = 0.1f;
+      x_offset *= mouse_sensitivity;
+      y_offset *= mouse_sensitivity;
+      m_camera_yaw += x_offset;
+      m_camera_pitch += y_offset;
+      m_camera_pitch = glm::clamp(m_camera_pitch, -89.0f, 89.0f);
+      glm::vec3 direction;
+      direction.x = cos(glm::radians(m_camera_yaw)) * cos(glm::radians(m_camera_pitch));
+      direction.y = sin(glm::radians(m_camera_pitch));
+      direction.z = sin(glm::radians(m_camera_yaw)) * cos(glm::radians(m_camera_pitch));
+      m_camera_front = glm::normalize(direction);
+    }
+    m_last_mouse_pos = glm::vec2(x_pos, y_pos);
+  }
+}
+void GeoBox_App::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (io.WantCaptureMouse)
+    return;
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
+      m_is_left_mouse_down = true;
+      m_last_mouse_pos.reset();
+    } else {
+      m_is_left_mouse_down = false;
+    }
+  }
+}
+
+void GeoBox_App::scroll_callback(GLFWwindow *w, double x_offset, double y_offset) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (io.WantCaptureMouse)
+    return;
+  m_camera_fov_degrees -= static_cast<float>(y_offset);
+  m_camera_fov_degrees = glm::clamp(m_camera_fov_degrees, 1.0f, 45.0f);
 }
