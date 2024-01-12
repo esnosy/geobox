@@ -22,7 +22,9 @@ struct Ray {
 };
 
 static float min_component(glm::vec3 const &v) { return std::min(v.x, std::min(v.y, v.z)); }
+
 static float max_component(glm::vec3 const &v) { return std::max(v.x, std::min(v.y, v.z)); }
+
 static bool is_not_all_zeros(glm::vec3 const &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
 
 static float ray_aabb_intersection(Ray const &ray, BVH::Node::AABB const &aabb) {
@@ -247,6 +249,7 @@ BVH::~BVH() {
 }
 
 bool BVH::is_empty() const { return m_root == nullptr; }
+
 size_t BVH::count_nodes() const {
   size_t num_nodes = 0;
   std::stack<Node *> stack;

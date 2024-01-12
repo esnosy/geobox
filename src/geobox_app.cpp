@@ -399,6 +399,7 @@ void GeoBox_App::shutdown() const {
   ImGui::DestroyContext();
   glfwTerminate();
 }
+
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
   PerformanceAPI_BeginEvent(__FUNCTION__, nullptr, PERFORMANCEAPI_DEFAULT_COLOR);
@@ -486,6 +487,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   PerformanceAPI_EndEvent();
 #endif
 }
+
 void GeoBox_App::cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
   ImGuiIO &io = ImGui::GetIO();
   if (io.WantCaptureMouse)
@@ -509,6 +511,7 @@ void GeoBox_App::cursor_pos_callback(GLFWwindow *window, double x_pos, double y_
     m_last_mouse_pos = glm::vec2(x_pos, y_pos);
   }
 }
+
 void GeoBox_App::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
   ImGuiIO &io = ImGui::GetIO();
   if (io.WantCaptureMouse)

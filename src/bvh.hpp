@@ -12,10 +12,13 @@ public:
     struct AABB {
       glm::vec3 min, max;
     };
+
     AABB aabb;
     unsigned int *first, *last;
     Node *left, *right;
+
     [[nodiscard]] bool is_leaf() const { return (left == nullptr) && (right == nullptr); }
+
     [[nodiscard]] unsigned int num_primitives() const {
       assert(last >= first);
       return last - first + 1;
