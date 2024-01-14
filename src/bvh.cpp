@@ -212,21 +212,6 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
 }
 
 BVH::~BVH() {
-  std::stack<Node *> stack;
-  stack.push(m_root);
-  int num_nodes = 1;
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    if (node->left) {
-      num_nodes++;
-      stack.push(node->left);
-    }
-    if (node->right) {
-      num_nodes++;
-      stack.push(node->right);
-    }
-  }
   free(m_primitive_indices);
   free(m_pre_allocated_nodes);
 }
