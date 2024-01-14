@@ -45,8 +45,8 @@ public:
 
   explicit BVH(std::vector<glm::vec3> const &points);
   ~BVH();
-  bool is_empty() const;
-  size_t count_nodes() const;
+  [[nodiscard]] bool is_empty() const;
+  [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] unsigned int calc_max_leaf_size() const;
   [[nodiscard]] unsigned int count_primitives() const;
 
