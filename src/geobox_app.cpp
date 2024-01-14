@@ -457,6 +457,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   unsigned int final_unique_vertex_index = 0;
   for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < m_vertices.size();
        original_unique_vertex_index++) {
+    // Skip already remapped vertex
     if (is_remapped_vec[original_unique_vertex_index])
       continue;
     glm::vec3 const &unique_vertex = m_vertices[original_unique_vertex_index];
