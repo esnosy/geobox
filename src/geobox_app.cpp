@@ -4,6 +4,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
@@ -133,6 +134,23 @@ static std::optional<std::string> read_file(const std::string &file_path) {
     return {};
   }
   return std::string(std::istreambuf_iterator(ifs), {});
+}
+
+static glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+  return glm::clamp(point, aabb.min, aabb.max);
+}
+
+static float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+  return glm::distance2(point, closest_point_on_aabb(point, aabb));
+}
+
+struct Sphere {
+  glm::vec3 center;
+  float radius;
+};
+
+static bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
+  return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
 GeoBox_App::GeoBox_App() {
@@ -443,16 +461,23 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
       continue;
     glm::vec3 const &unique_vertex = m_vertices[original_unique_vertex_index];
     constexpr float range = 0.0001f;
-    bvh.foreach_in_range(unique_vertex, range,
-                         [final_unique_vertex_index, &is_remapped_vec, &indices, &unique_vertex,
-                          this](unsigned int duplicate_vertex_index) {
-                           if (glm::distance2(unique_vertex, m_vertices[duplicate_vertex_index]) > (range * range))
-                             return;
-                           if (!is_remapped_vec[duplicate_vertex_index]) {
-                             indices[duplicate_vertex_index] = final_unique_vertex_index;
-                             is_remapped_vec[duplicate_vertex_index] = true;
-                           }
-                         });
+    Sphere sphere{.center = unique_vertex, .radius = range};
+
+    auto duplicate_vertex_callback = [final_unique_vertex_index, &is_remapped_vec,
+                                      &indices](unsigned int duplicate_vertex_index) {
+      if (!is_remapped_vec[duplicate_vertex_index]) {
+        indices[duplicate_vertex_index] = final_unique_vertex_index;
+        is_remapped_vec[duplicate_vertex_index] = true;
+      }
+    };
+    auto aabb_filter = [&sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
+      return sphere_aabb_intersection(sphere, aabb);
+    };
+    auto primitive_filter = [this, &unique_vertex](unsigned int potential_duplicate_vertex_index) {
+      return glm::distance2(unique_vertex, m_vertices[potential_duplicate_vertex_index]) <= (range * range);
+    };
+    bvh.foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
+
     final_unique_vertex_index++;
     unique_vertices.push_back(unique_vertex);
   }

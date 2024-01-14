@@ -99,23 +99,6 @@ int main() {
 }
 #endif
 
-static glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
-  return glm::clamp(point, aabb.min, aabb.max);
-}
-
-static float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
-  return glm::distance2(point, closest_point_on_aabb(point, aabb));
-}
-
-struct Sphere {
-  glm::vec3 center;
-  float radius;
-};
-
-static bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
-  return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
-}
-
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
 static BVH::Node::AABB calc_aabb_indirect(std::vector<glm::vec3> const &points, unsigned int const *first,
@@ -252,72 +235,64 @@ bool BVH::is_empty() const { return m_root == nullptr; }
 
 size_t BVH::count_nodes() const {
   size_t num_nodes = 0;
-  std::stack<Node *> stack;
-  stack.push(m_root);
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    num_nodes++;
-    if (node->left) {
-      stack.push(node->left);
-    }
-    if (node->right) {
-      stack.push(node->right);
-    }
-  }
+  foreach_node([&num_nodes](const Node *node) { num_nodes++; }, [](Node::AABB const &) { return true; });
   return num_nodes;
 }
 
 unsigned int BVH::calc_max_leaf_size() const {
   unsigned int max_node_size = 0;
-  std::stack<Node *> stack;
-  stack.push(m_root);
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    if (node->is_leaf()) {
-      max_node_size = std::max(max_node_size, node->num_primitives());
-    } else {
-      stack.push(node->left);
-      stack.push(node->right);
-    }
-  }
+  foreach_node_leaf(
+      [&max_node_size](const Node *node) { max_node_size = std::max(max_node_size, node->num_primitives()); },
+      [](Node::AABB const &) { return true; });
   return max_node_size;
 }
 
 unsigned int BVH::count_primitives() const {
   unsigned int num_primitives = 0;
-  std::stack<Node *> stack;
-  stack.push(m_root);
-  while (!stack.empty()) {
-    const Node *node = stack.top();
-    stack.pop();
-    if (node->is_leaf()) {
-      num_primitives += node->num_primitives();
-    } else {
-      stack.push(node->left);
-      stack.push(node->right);
-    }
-  }
+  foreach_node_leaf([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
+                    [](Node::AABB const &) { return true; });
   return num_primitives;
 }
 
-void BVH::foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const {
-  Sphere sphere{.center = v, .radius = range};
-  std::stack<Node *> stack;
+void BVH::foreach_node(const std::function<void(const Node *)> &callback,
+                       std::function<bool(BVH::Node::AABB const &aabb)> const &aabb_filter) const {
+  std::stack<const Node *> stack;
   stack.push(m_root);
   while (!stack.empty()) {
     const Node *node = stack.top();
     stack.pop();
-    if (!sphere_aabb_intersection(sphere, node->aabb))
+
+    if (!aabb_filter(node->aabb))
       continue;
-    if (node->is_leaf()) {
-      for (unsigned int *i = node->first; i <= node->last; i++) {
-        callback(*i);
-      }
-    } else {
+
+    callback(node);
+    if (!node->is_leaf()) {
+      assert(node->left && node->right);
       stack.push(node->left);
       stack.push(node->right);
     }
   }
+}
+
+void BVH::foreach_node_leaf(std::function<void(const Node *)> const &callback,
+                            std::function<bool(BVH::Node::AABB const &aabb)> const &aabb_filter) const {
+  foreach_node(
+      [&callback](const Node *node) {
+        if (node->is_leaf())
+          callback(node);
+      },
+      aabb_filter);
+}
+
+void BVH::foreach_primitive(std::function<void(unsigned int)> const &callback,
+                            std::function<bool(const BVH::Node::AABB &)> const &aabb_filter,
+                            std::function<bool(unsigned int)> const &primitive_filter) const {
+  foreach_node_leaf(
+      [&callback, &primitive_filter](const Node *node) {
+        for (unsigned int *i = node->first; i <= node->last; i++) {
+          if (primitive_filter(*i))
+            callback(*i);
+        }
+      },
+      aabb_filter);
 }

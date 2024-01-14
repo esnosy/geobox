@@ -31,6 +31,10 @@ private:
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
   Node *new_node();
+  void foreach_node(std::function<void(const Node *)> const &callback,
+                    std::function<bool(Node::AABB const &aabb)> const &aabb_filter) const;
+  void foreach_node_leaf(std::function<void(const Node *)> const &callback,
+                         std::function<bool(Node::AABB const &aabb)> const &aabb_filter) const;
 
 public:
   BVH() = delete;
@@ -46,5 +50,7 @@ public:
   [[nodiscard]] unsigned int calc_max_leaf_size() const;
   [[nodiscard]] unsigned int count_primitives() const;
 
-  void foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const;
+  void foreach_primitive(std::function<void(unsigned int)> const &callback,
+                         std::function<bool(Node::AABB const &aabb)> const &aabb_filter,
+                         std::function<bool(unsigned int)> const &primitive_filter) const;
 };
