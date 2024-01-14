@@ -43,7 +43,7 @@ public:
   ~BVH();
   bool is_empty() const;
   size_t count_nodes() const;
-  [[nodiscard]] unsigned int calc_max_node_size() const;
+  [[nodiscard]] unsigned int calc_max_leaf_size() const;
   [[nodiscard]] unsigned int count_primitives() const;
 
   void foreach_in_range(glm::vec3 const &v, float range, std::function<void(unsigned int)> const &callback) const;

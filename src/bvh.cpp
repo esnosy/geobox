@@ -268,7 +268,7 @@ size_t BVH::count_nodes() const {
   return num_nodes;
 }
 
-unsigned int BVH::calc_max_node_size() const {
+unsigned int BVH::calc_max_leaf_size() const {
   unsigned int max_node_size = 0;
   std::stack<Node *> stack;
   stack.push(m_root);
