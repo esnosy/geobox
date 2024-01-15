@@ -564,9 +564,11 @@ void GeoBox_App::mouse_button_callback(GLFWwindow *window, int button, int actio
     return;
   if (button == GLFW_MOUSE_BUTTON_LEFT) {
     if (action == GLFW_PRESS) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
       m_is_left_mouse_down = true;
       m_last_mouse_pos.reset();
     } else {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
       m_is_left_mouse_down = false;
     }
   }
