@@ -364,8 +364,7 @@ void GeoBox_App::render() {
 
   glm::mat4 model(1.0f);
   glm::mat4 view = glm::lookAt(m_camera_pos, m_camera_pos + m_camera_front, m_up);
-  glm::mat4 projection;
-  projection = glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
+  glm::mat4 projection = glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
   glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(model));
