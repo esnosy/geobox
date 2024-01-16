@@ -31,13 +31,12 @@ private:
   std::vector<unsigned int> m_indices;
   std::vector<glm::vec3> m_vertex_normals;
 
-  glm::vec3 m_camera_pos = {0, 0, 3};
-  glm::vec3 m_camera_front = {0, 0, -1};
-  glm::vec3 m_up = {0, 1, 0};
-
-  // TODO: group camera properties and refactor camera and optionally write better camera movement logic
-  float m_camera_yaw = -90.0f, m_camera_pitch = 0.0f;
   float m_camera_fov_degrees = 45.0f;
+
+  // Orbit camera
+  float m_camera_inclination = 0.0f;
+  float m_camera_azimuth = 0.0f;
+  float m_camera_orbit_radius = 1.0f;
 
   float m_delta_time = 0.0f;      // Time between current frame and last frame
   float m_last_frame_time = 0.0f; // Time of last frame

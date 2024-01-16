@@ -333,14 +333,18 @@ void GeoBox_App::process_input() {
   if (io.WantCaptureMouse)
     return;
   const float camera_speed = 2.5f * m_delta_time; // adjust accordingly
-  if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
-    m_camera_pos += camera_speed * m_camera_front;
-  if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
-    m_camera_pos -= camera_speed * m_camera_front;
-  if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS)
-    m_camera_pos -= glm::normalize(glm::cross(m_camera_front, m_up)) * camera_speed;
-  if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
-    m_camera_pos += glm::normalize(glm::cross(m_camera_front, m_up)) * camera_speed;
+  if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS) {
+    m_camera_orbit_radius = glm::max(m_camera_orbit_radius - camera_speed, 0.0f);
+  }
+  if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS) {
+    m_camera_orbit_radius += camera_speed;
+  }
+  if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS) {
+    // TODO: do something
+  }
+  if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS) {
+    // TODO: do something
+  }
 }
 
 void GeoBox_App::render() {
@@ -363,7 +367,38 @@ void GeoBox_App::render() {
   glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
 
   glm::mat4 model(1.0f);
-  glm::mat4 view = glm::lookAt(m_camera_pos, m_camera_pos + m_camera_front, m_up);
+
+  // Spherical coordinates unit vectors: https://mathworld.wolfram.com/SphericalCoordinates.html
+  float sin_camera_inclination = glm::sin(m_camera_inclination);
+  float cos_camera_inclination = glm::cos(m_camera_inclination);
+  float sin_camera_azimuth = glm::sin(m_camera_azimuth);
+  float cos_camera_azimuth = glm::cos(m_camera_azimuth);
+  glm::vec3 orbit_sphere_normal{
+      sin_camera_inclination * cos_camera_azimuth,
+      sin_camera_inclination * sin_camera_azimuth,
+      cos_camera_inclination,
+  };
+  glm::vec3 orbit_sphere_tangent{
+      -1 * sin_camera_azimuth,
+      cos_camera_azimuth,
+      0,
+  };
+  glm::vec3 orbit_sphere_bi_tangent{
+      cos_camera_inclination * cos_camera_azimuth,
+      cos_camera_inclination * sin_camera_azimuth,
+      -sin_camera_inclination,
+  };
+  glm::vec3 camera_pos = orbit_sphere_normal * m_camera_orbit_radius;
+  glm::mat3 camera_basis{
+      orbit_sphere_tangent,
+      orbit_sphere_bi_tangent,
+      orbit_sphere_normal,
+  };
+  glm::mat4 camera(1.0f);
+  camera = glm::translate(camera, camera_pos);
+  camera = camera * glm::mat4(camera_basis);
+
+  glm::mat4 view = glm::inverse(camera);
   glm::mat4 projection = glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
@@ -541,17 +576,11 @@ void GeoBox_App::cursor_pos_callback(GLFWwindow *window, double x_pos, double y_
     if (m_last_mouse_pos.has_value()) {
       float x_offset = x_pos - m_last_mouse_pos->x;
       float y_offset = m_last_mouse_pos->y - y_pos; // reversed since y-coordinates range from bottom to top
-      constexpr float mouse_sensitivity = 0.1f;
+      constexpr float mouse_sensitivity = 0.01f;
       x_offset *= mouse_sensitivity;
       y_offset *= mouse_sensitivity;
-      m_camera_yaw += x_offset;
-      m_camera_pitch += y_offset;
-      m_camera_pitch = glm::clamp(m_camera_pitch, -89.0f, 89.0f);
-      glm::vec3 direction;
-      direction.x = cos(glm::radians(m_camera_yaw)) * cos(glm::radians(m_camera_pitch));
-      direction.y = sin(glm::radians(m_camera_pitch));
-      direction.z = sin(glm::radians(m_camera_yaw)) * cos(glm::radians(m_camera_pitch));
-      m_camera_front = glm::normalize(direction);
+      m_camera_inclination -= y_offset;
+      m_camera_azimuth += x_offset;
     }
     m_last_mouse_pos = glm::vec2(x_pos, y_pos);
   }
