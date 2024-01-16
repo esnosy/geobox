@@ -541,19 +541,17 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_indices = indices;
 
   m_vertex_normals.resize(m_vertices.size());
-  std::vector<unsigned int> triangle_count_per_vertex(m_vertices.size(), 0);
   for (unsigned int i = 0; i < m_indices.size(); i += 3) {
     const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
     const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
     const glm::vec3 &c = unique_vertices[m_indices[i + 2]];
     glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
     for (int j = 0; j < 3; j++) {
-      triangle_count_per_vertex[m_indices[i + j]] += 1;
       m_vertex_normals[m_indices[i + j]] += triangle_normal;
     }
   }
-  for (size_t i = 0; i < m_vertices.size(); i++) {
-    m_vertex_normals[i] /= triangle_count_per_vertex[i];
+  for (glm::vec3 &vertex_normal : m_vertex_normals) {
+    vertex_normal = glm::normalize(vertex_normal);
   }
 
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
