@@ -22,9 +22,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include "bvh.hpp"
 #include "geobox_app.hpp"
 
@@ -104,7 +101,7 @@ static std::optional<std::vector<glm::vec3>> read_stl_mesh_file(const std::strin
     return {};
   }
 
-  auto file_end = ifs.tellg(); // file is already at end when it is open in "ate" mode
+  auto file_end = ifs.tellg(); // file is already at end if it was opened in "ate" mode
   ifs.seekg(0, std::ifstream::beg);
   auto file_beg = ifs.tellg();
   auto file_size = file_end - file_beg;
@@ -136,11 +133,11 @@ static std::optional<std::string> read_file(const std::string &file_path) {
   return std::string(std::istreambuf_iterator(ifs), {});
 }
 
-static glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
-static float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
   return glm::distance2(point, closest_point_on_aabb(point, aabb));
 }
 
@@ -149,7 +146,7 @@ struct Sphere {
   float radius;
 };
 
-static bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
+bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
@@ -169,7 +166,7 @@ GeoBox_App::GeoBox_App() {
 void GeoBox_App::main_loop() {
   while (!glfwWindowShouldClose(m_window)) {
     // Update delta time
-    float current_frame_time = static_cast<float>(glfwGetTime());
+    auto current_frame_time = static_cast<float>(glfwGetTime());
     m_delta_time = current_frame_time - m_last_frame_time;
     m_last_frame_time = current_frame_time;
 
@@ -216,11 +213,11 @@ void GeoBox_App::init_glfw() {
   // https://stackoverflow.com/a/28660673/8094047
   glfwSetWindowUserPointer(m_window, this);
 
-  // Swap interval of 1 reduces tearing with minimal input latency
+  // Swap interval of 1: reduces tearing with minimal input latency
   glfwSwapInterval(1);
 }
 
-void GeoBox_App::init_glad() const {
+void GeoBox_App::init_glad() {
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize GLAD" << std::endl;
     glfwTerminate();
@@ -245,57 +242,43 @@ void GeoBox_App::init_imgui() {
   ImGui_ImplOpenGL3_Init();
 }
 
-void GeoBox_App::init_glfw_callbacks() {
-  // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
-  glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow *w, int width, int height) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->framebuffer_size_callback(w, width, height);
-  });
-  glfwSetWindowRefreshCallback(m_window, [](GLFWwindow *w) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->window_refresh_callback(w);
-  });
-  glfwSetCursorPosCallback(m_window, [](GLFWwindow *w, double x_pos, double y_pos) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->cursor_pos_callback(w, x_pos, y_pos);
-  });
-  glfwSetMouseButtonCallback(m_window, [](GLFWwindow *w, int button, int action, int mods) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->mouse_button_callback(w, button, action, mods);
-  });
-  glfwSetScrollCallback(m_window, [](GLFWwindow *w, double x_offset, double y_offset) {
-    static_cast<GeoBox_App *>(glfwGetWindowUserPointer(w))->scroll_callback(w, x_offset, y_offset);
-  });
-}
-
 bool GeoBox_App::init_shaders() {
-  std::optional<std::string> vertex_shader_source = read_file("resources/shaders/default.vert");
-  if (!vertex_shader_source.has_value()) {
+  std::optional<std::string> default_vertex_shader_source = read_file("resources/shaders/default.vert");
+  if (!default_vertex_shader_source.has_value()) {
     return false;
   }
-  std::optional<std::string> fragment_shader_source = read_file("resources/shaders/default.frag");
-  if (!fragment_shader_source.has_value()) {
+  std::optional<std::string> default_fragment_shader_source = read_file("resources/shaders/default.frag");
+  if (!default_fragment_shader_source.has_value()) {
     return false;
   }
 
-  char *vertex_shader_sources[] = {vertex_shader_source->data()};
-  char *fragment_shader_sources[] = {fragment_shader_source->data()};
+  std::vector<char *> vertex_shader_sources = {default_vertex_shader_source->data()};
+  std::vector<char *> fragment_shader_sources = {default_fragment_shader_source->data()};
   int success;
-  char info_log[512];
+
+  int max_info_log_length = 512;
+  int actual_info_log_length = 0;
+  std::vector<char> info_log(max_info_log_length);
 
   unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertex_shader, 1, vertex_shader_sources, nullptr);
+  glShaderSource(vertex_shader, (int)vertex_shader_sources.size(), vertex_shader_sources.data(), nullptr);
   glCompileShader(vertex_shader);
   glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
   if (!success) {
-    glGetShaderInfoLog(vertex_shader, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << info_log << std::endl;
+    glGetShaderInfoLog(vertex_shader, max_info_log_length, &actual_info_log_length, info_log.data());
+    std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
     return false;
   }
 
   unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragment_shader, 1, fragment_shader_sources, nullptr);
+  glShaderSource(fragment_shader, (int)fragment_shader_sources.size(), fragment_shader_sources.data(), nullptr);
   glCompileShader(fragment_shader);
   glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
   if (!success) {
-    glGetShaderInfoLog(fragment_shader, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << info_log << std::endl;
+    glGetShaderInfoLog(fragment_shader, max_info_log_length, &actual_info_log_length, info_log.data());
+    std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
     return false;
   }
 
@@ -305,8 +288,9 @@ bool GeoBox_App::init_shaders() {
   glLinkProgram(shader_program);
   glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
   if (!success) {
-    glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
-    std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << info_log << std::endl;
+    glGetProgramInfoLog(shader_program, max_info_log_length, &actual_info_log_length, info_log.data());
+    std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
+              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
     return false;
   }
 
@@ -318,19 +302,71 @@ bool GeoBox_App::init_shaders() {
   return true;
 }
 
-void GeoBox_App::window_refresh_callback(GLFWwindow *window) {
-  render();
+void window_refresh_callback(GLFWwindow *window) {
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  app->render();
   glfwSwapBuffers(window);
   glFinish();
 }
 
-void GeoBox_App::framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int height) const {
+void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
+void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
+  if (ImGui::GetIO().WantCaptureMouse)
+    return;
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  if (app->m_is_left_mouse_down) {
+    if (app->m_last_mouse_pos.has_value()) {
+      float x_offset = static_cast<float>(x_pos) - app->m_last_mouse_pos->x;
+      float y_offset =
+          app->m_last_mouse_pos->y - static_cast<float>(y_pos); // reversed since y-coordinates range from bottom to top
+      constexpr float mouse_sensitivity = 0.01f;
+      x_offset *= mouse_sensitivity;
+      y_offset *= mouse_sensitivity;
+      app->m_camera_inclination -= y_offset;
+      app->m_camera_azimuth += x_offset;
+    }
+    app->m_last_mouse_pos = glm::vec2(x_pos, y_pos);
+  }
+}
+
+void mouse_button_callback(GLFWwindow *window, int button, int action, int /*mods*/) {
+  if (ImGui::GetIO().WantCaptureMouse)
+    return;
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  if (button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (action == GLFW_PRESS) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      app->m_is_left_mouse_down = true;
+      app->m_last_mouse_pos.reset();
+    } else {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      app->m_is_left_mouse_down = false;
+    }
+  }
+}
+
+void scroll_callback(GLFWwindow *window, double /*x_offset*/, double y_offset) {
+  if (ImGui::GetIO().WantCaptureMouse)
+    return;
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  app->m_camera_fov_degrees -= static_cast<float>(y_offset);
+  app->m_camera_fov_degrees = glm::clamp(app->m_camera_fov_degrees, 1.0f, 45.0f);
+}
+
+void GeoBox_App::init_glfw_callbacks() {
+  // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
+  glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
+  glfwSetWindowRefreshCallback(m_window, (GLFWwindowrefreshfun)window_refresh_callback);
+  glfwSetCursorPosCallback(m_window, (GLFWcursorposfun)cursor_pos_callback);
+  glfwSetMouseButtonCallback(m_window, (GLFWmousebuttonfun)mouse_button_callback);
+  glfwSetScrollCallback(m_window, (GLFWscrollfun)scroll_callback);
+}
+
 void GeoBox_App::process_input() {
-  ImGuiIO &io = ImGui::GetIO();
-  if (io.WantCaptureMouse)
+  if (ImGui::GetIO().WantCaptureMouse)
     return;
   const float camera_speed = 2.5f * m_delta_time; // adjust accordingly
   if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -360,8 +396,8 @@ void GeoBox_App::render() {
 
   glUseProgram(m_default_shader_program);
 
-  float time = glfwGetTime();
-  float green_value = (std::sin(time) / 2.0f) + 0.5f;
+  auto time = static_cast<float>(glfwGetTime());
+  float green_value = std::sin(time) / 2.0f + 0.5f;
 
   int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
   glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
@@ -399,7 +435,8 @@ void GeoBox_App::render() {
   camera = camera * glm::mat4(camera_basis);
 
   glm::mat4 view = glm::inverse(camera);
-  glm::mat4 projection = glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
+  glm::mat4 projection =
+      glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
   glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(model));
@@ -410,7 +447,7 @@ void GeoBox_App::render() {
 
   if (m_is_object_loaded) {
     glBindVertexArray(m_VAO);
-    glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, nullptr);
   }
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -446,7 +483,7 @@ void GeoBox_App::render() {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GeoBox_App::shutdown() const {
+void GeoBox_App::shutdown() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
@@ -505,11 +542,12 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
         is_remapped_vec[duplicate_vertex_index] = true;
       }
     };
-    auto aabb_filter = [&sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
-      return sphere_aabb_intersection(sphere, aabb);
+    auto aabb_filter = [&const_sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
+      return sphere_aabb_intersection(const_sphere, aabb);
     };
-    auto primitive_filter = [this, &unique_vertex](unsigned int potential_duplicate_vertex_index) {
-      return glm::distance2(unique_vertex, m_vertices[potential_duplicate_vertex_index]) <= (range * range);
+    auto primitive_filter = [&const_m_vertices = std::as_const(m_vertices),
+                             &unique_vertex](unsigned int potential_duplicate_vertex_index) {
+      return glm::distance2(unique_vertex, const_m_vertices[potential_duplicate_vertex_index]) <= (range * range);
     };
     bvh.foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
 
@@ -520,6 +558,19 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   std::cout << "Num unique vertices = " << unique_vertices.size() << std::endl;
 
+  if (unique_vertices.size() > (std::numeric_limits<unsigned int>::max() / sizeof(glm::vec3))) {
+    std::cerr << "Aborting GPU mesh creation, too many vertices, TODO: support larger meshes" << std::endl;
+    return;
+  }
+  auto unique_vertices_buffer_size = static_cast<unsigned int>(unique_vertices.size() * sizeof(glm::vec3));
+
+  if (indices.size() > (std::numeric_limits<int>::max() / sizeof(unsigned int))) {
+    std::cerr << "Aborting GPU mesh creation, too many indices, TODO: support larger meshes" << std::endl;
+    return;
+  }
+  m_num_indices = static_cast<int>(indices.size());
+  int indices_buffer_size = m_num_indices * static_cast<int>(sizeof(unsigned int));
+
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
@@ -527,15 +578,15 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   unsigned int VBO;
   glGenBuffers(1, &VBO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, unique_vertices.size() * sizeof(glm::vec3), unique_vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, unique_vertices_buffer_size, unique_vertices.data(), GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(0);
 
   unsigned int EBO;
   glGenBuffers(1, &EBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_buffer_size, indices.data(), GL_STATIC_DRAW);
 
   m_vertices = unique_vertices;
   m_indices = indices;
@@ -554,7 +605,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     vertex_normal = glm::normalize(vertex_normal);
   }
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(1);
 
   m_VAO = VAO;
@@ -564,46 +615,4 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
   PerformanceAPI_EndEvent();
 #endif
-}
-
-void GeoBox_App::cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
-  ImGuiIO &io = ImGui::GetIO();
-  if (io.WantCaptureMouse)
-    return;
-  if (m_is_left_mouse_down) {
-    if (m_last_mouse_pos.has_value()) {
-      float x_offset = x_pos - m_last_mouse_pos->x;
-      float y_offset = m_last_mouse_pos->y - y_pos; // reversed since y-coordinates range from bottom to top
-      constexpr float mouse_sensitivity = 0.01f;
-      x_offset *= mouse_sensitivity;
-      y_offset *= mouse_sensitivity;
-      m_camera_inclination -= y_offset;
-      m_camera_azimuth += x_offset;
-    }
-    m_last_mouse_pos = glm::vec2(x_pos, y_pos);
-  }
-}
-
-void GeoBox_App::mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
-  ImGuiIO &io = ImGui::GetIO();
-  if (io.WantCaptureMouse)
-    return;
-  if (button == GLFW_MOUSE_BUTTON_LEFT) {
-    if (action == GLFW_PRESS) {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      m_is_left_mouse_down = true;
-      m_last_mouse_pos.reset();
-    } else {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      m_is_left_mouse_down = false;
-    }
-  }
-}
-
-void GeoBox_App::scroll_callback(GLFWwindow *w, double x_offset, double y_offset) {
-  ImGuiIO &io = ImGui::GetIO();
-  if (io.WantCaptureMouse)
-    return;
-  m_camera_fov_degrees -= static_cast<float>(y_offset);
-  m_camera_fov_degrees = glm::clamp(m_camera_fov_degrees, 1.0f, 45.0f);
 }

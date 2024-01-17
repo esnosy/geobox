@@ -16,17 +16,20 @@ public:
 private:
   GLFWwindow *m_window = nullptr;
 
-  unsigned int m_default_shader_program;
+  unsigned int m_default_shader_program = 0;
 
-  // TODO: support more objects once we settle on a design
+  // TODO: support multiple objects once we settle on a design
   bool m_is_object_loaded = false;
 
-  unsigned int m_VAO;
+  // GPU Mesh
+  unsigned int m_VAO = 0;
   // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later
   // VAO references VBO and EBO so updates will be reflected when VAO is bound again
-  unsigned int m_VBO;
-  unsigned int m_EBO;
+  unsigned int m_VBO = 0;
+  unsigned int m_EBO = 0;
+  int m_num_indices = 0;
 
+  // CPU Mesh
   std::vector<glm::vec3> m_vertices;
   std::vector<unsigned int> m_indices;
   std::vector<glm::vec3> m_vertex_normals;
@@ -44,22 +47,25 @@ private:
   bool m_is_left_mouse_down = false;
   std::optional<glm::vec2> m_last_mouse_pos;
 
+  // Init
   void init_glfw();
-  void init_glad() const;
+  static void init_glad();
   void init_imgui();
   void init_glfw_callbacks();
   bool init_shaders();
 
-  void window_refresh_callback(GLFWwindow *window);
-  void framebuffer_size_callback(const GLFWwindow *window, int width, int height) const;
-  void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos);
-  void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+  // Callbacks
+  friend void window_refresh_callback(GLFWwindow *window);
+  friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
+  friend void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos);
+  friend void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
+  friend void scroll_callback(GLFWwindow *window, double x_offset, double y_offset);
 
   // Main-loop internals
   void process_input();
   void render();
-  void shutdown() const;
+  static void shutdown();
+
   // Dialogs
   void on_load_stl_dialog_ok(const std::string &file_path);
-  void scroll_callback(GLFWwindow *w, double x_offset, double y_offset);
 };
