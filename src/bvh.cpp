@@ -1,31 +1,33 @@
 #include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
-#include <cmath>     // for std::abs
+#include <cstdlib>   // for std::malloc, std::free, std::abort and std::abs
 #include <functional>
 #include <iostream>
 #include <limits> // for std::numeric_limits
 #include <stack>
 #include <tuple> // for std::tie
+#include <vector>
 
 #include <glm/common.hpp> // for glm::min and glm::max
 #include <glm/gtx/norm.hpp>
 
 #include "bvh.hpp"
 
-static bool is_close(float a, float b) {
+bool is_close(float a, float b) {
   // https://isocpp.org/wiki/faq/newbie#floating-point-arith
-  constexpr float epsilon = 1e-5;
+  constexpr float epsilon = 1e-5f;
   return std::abs(a - b) <= epsilon * std::abs(a);
 }
 
 struct Ray {
-  glm::vec3 origin, direction;
+  glm::vec3 origin;
+  glm::vec3 direction;
 };
 
-static float min_component(glm::vec3 const &v) { return std::min(v.x, std::min(v.y, v.z)); }
+float min_component(glm::vec3 const &v) { return std::min(v.x, std::min(v.y, v.z)); }
 
-static float max_component(glm::vec3 const &v) { return std::max(v.x, std::min(v.y, v.z)); }
+float max_component(glm::vec3 const &v) { return std::max(v.x, std::min(v.y, v.z)); }
 
-static bool is_not_all_zeros(glm::vec3 const &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
+bool is_not_all_zeros(glm::vec3 const &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
 
 static float ray_aabb_intersection(Ray const &ray, BVH::Node::AABB const &aabb) {
   assert(is_not_all_zeros(ray.direction));
@@ -56,7 +58,7 @@ int main() {
     bool does_intersect;
   };
 
-  Test_Case cases[] = {
+  std::vector<Test_Case> cases = {
       {{glm::vec3(2), glm::vec3(-1)}, aabb, true},
       {{glm::vec3(2), glm::vec3(1)}, aabb, false},
       {{glm::vec3(-2), glm::vec3(-1)}, aabb, false},
@@ -64,10 +66,10 @@ int main() {
       // Some edge cases,
       {{aabb.min - glm::vec3(0), glm::vec3(-1)}, aabb, true},
       {{aabb.min - glm::vec3(0), glm::vec3(1)}, aabb, true},
-      {{aabb.min - glm::vec3(0.0001), glm::vec3(-1)}, aabb, false},
-      {{aabb.min - glm::vec3(0.0001), glm::vec3(1)}, aabb, true},
-      {{aabb.min + glm::vec3(0.0001), glm::vec3(1)}, aabb, true},
-      {{aabb.min + glm::vec3(0.0001), glm::vec3(-1)}, aabb, true},
+      {{aabb.min - glm::vec3(0.0001f), glm::vec3(-1)}, aabb, false},
+      {{aabb.min - glm::vec3(0.0001f), glm::vec3(1)}, aabb, true},
+      {{aabb.min + glm::vec3(0.0001f), glm::vec3(1)}, aabb, true},
+      {{aabb.min + glm::vec3(0.0001f), glm::vec3(-1)}, aabb, true},
       {{aabb.min - glm::vec3(0, 0, 3), glm::vec3(0, 0, 1)}, aabb, true},
       {{glm::vec3(0, 0, 1), glm::vec3(0, 0, 1)}, aabb, true},
       {{glm::vec3(0, 0, 1), glm::vec3(1, 0, 0)}, aabb, true},
@@ -91,7 +93,9 @@ int main() {
   for (Test_Case const &c : cases) {
     std::cout << "Test Case: " << i << std::endl;
     t = ray_aabb_intersection(c.ray, c.aabb);
-    assert((t >= 0) == c.does_intersect);
+    if ((t >= 0) != c.does_intersect) {
+      std::abort();
+    }
     i++;
   }
 
@@ -159,9 +163,10 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
     }
 
     // Calculate variance
-    glm::vec3 mean_of_squares(0), mean(0);
-    float num_node_vertices = static_cast<float>(node->last - node->first + 1);
-    for (unsigned int *i = node->first; i <= node->last; i++) {
+    glm::vec3 mean_of_squares(0);
+    glm::vec3 mean(0);
+    auto num_node_vertices = static_cast<float>(node->num_primitives());
+    for (unsigned int const *i = node->first; i <= node->last; i++) {
       const glm::vec3 &v = points[*i];
       glm::vec3 tmp = v / num_node_vertices;
       mean += tmp;
@@ -183,9 +188,9 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
     // note that std::partition input range is not inclusive,
     // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
     // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
-    unsigned int *second_group_first =
-        std::partition(node->first, node->last + 1,
-                       [&points, axis, split_pos](unsigned int i) { return points[i][axis] < split_pos; });
+    auto *second_group_first = std::partition(node->first, node->last + 1, [&points, axis, split_pos](unsigned int i) {
+      return points[i][axis] < split_pos;
+    });
 
     // Abort current node if partitioning fails
     if (second_group_first == node->first || second_group_first == (node->last + 1)) {
@@ -216,31 +221,29 @@ BVH::~BVH() {
   free(m_pre_allocated_nodes);
 }
 
-bool BVH::is_empty() const { return m_root == nullptr; }
-
 size_t BVH::count_nodes() const {
   size_t num_nodes = 0;
-  foreach_node([&num_nodes](const Node *node) { num_nodes++; }, [](Node::AABB const &) { return true; });
+  foreach_node([&num_nodes](const Node *) { num_nodes++; }, [](Node::AABB const &) { return true; });
   return num_nodes;
 }
 
-unsigned int BVH::calc_max_leaf_size() const {
-  unsigned int max_node_size = 0;
+size_t BVH::calc_max_leaf_size() const {
+  size_t max_node_size = 0;
   foreach_node_leaf(
       [&max_node_size](const Node *node) { max_node_size = std::max(max_node_size, node->num_primitives()); },
       [](Node::AABB const &) { return true; });
   return max_node_size;
 }
 
-unsigned int BVH::count_primitives() const {
-  unsigned int num_primitives = 0;
+size_t BVH::count_primitives() const {
+  size_t num_primitives = 0;
   foreach_node_leaf([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
                     [](Node::AABB const &) { return true; });
   return num_primitives;
 }
 
-void BVH::foreach_node(const std::function<void(const Node *)> &callback,
-                       std::function<bool(BVH::Node::AABB const &aabb)> const &aabb_filter) const {
+template <typename Callback_Type, typename AABB_Filter_Type>
+void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const {
   std::stack<const Node *> stack;
   stack.push(m_root);
   while (!stack.empty()) {
@@ -274,7 +277,7 @@ void BVH::foreach_primitive(std::function<void(unsigned int)> const &callback,
                             std::function<bool(unsigned int)> const &primitive_filter) const {
   foreach_node_leaf(
       [&callback, &primitive_filter](const Node *node) {
-        for (unsigned int *i = node->first; i <= node->last; i++) {
+        for (unsigned int const *i = node->first; i <= node->last; i++) {
           if (primitive_filter(*i))
             callback(*i);
         }

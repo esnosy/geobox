@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 #include <optional>
 #include <vector>
 
@@ -10,16 +11,19 @@ class BVH {
 public:
   struct Node {
     struct AABB {
-      glm::vec3 min, max;
+      glm::vec3 min;
+      glm::vec3 max;
     };
 
     AABB aabb;
-    unsigned int *first, *last;
-    Node *left, *right;
+    unsigned int *first;
+    unsigned int *last;
+    Node *left;
+    Node *right;
 
     [[nodiscard]] bool is_leaf() const { return (left == nullptr) && (right == nullptr); }
 
-    [[nodiscard]] unsigned int num_primitives() const {
+    [[nodiscard]] size_t num_primitives() const {
       assert(last >= first);
       return last - first + 1;
     }
@@ -31,8 +35,8 @@ private:
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
   Node *new_node();
-  void foreach_node(std::function<void(const Node *)> const &callback,
-                    std::function<bool(Node::AABB const &aabb)> const &aabb_filter) const;
+  template <typename Callback_Type, typename AABB_Filter_Type>
+  void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
   void foreach_node_leaf(std::function<void(const Node *)> const &callback,
                          std::function<bool(Node::AABB const &aabb)> const &aabb_filter) const;
 
@@ -45,10 +49,9 @@ public:
 
   explicit BVH(std::vector<glm::vec3> const &points);
   ~BVH();
-  [[nodiscard]] bool is_empty() const;
   [[nodiscard]] size_t count_nodes() const;
-  [[nodiscard]] unsigned int calc_max_leaf_size() const;
-  [[nodiscard]] unsigned int count_primitives() const;
+  [[nodiscard]] size_t calc_max_leaf_size() const;
+  [[nodiscard]] size_t count_primitives() const;
 
   void foreach_primitive(std::function<void(unsigned int)> const &callback,
                          std::function<bool(Node::AABB const &aabb)> const &aabb_filter,
