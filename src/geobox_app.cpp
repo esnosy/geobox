@@ -500,21 +500,11 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
     return;
   }
-
   if (vertices->empty()) {
     std::cerr << "Empty mesh: " << file_path << std::endl;
     return;
   }
-
-  // Free old GPU data if needed
-  if (m_is_object_loaded) {
-    glDeleteVertexArrays(1, &m_VAO);
-    glDeleteBuffers(1, &m_VBO);
-    glDeleteBuffers(1, &m_EBO);
-  }
-
   m_vertices = vertices.value();
-
   BVH bvh(m_vertices);
   if (bvh.did_build_fail()) {
     std::cerr << "Failed to build BVH" << std::endl;
@@ -574,6 +564,13 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   }
   m_num_indices = static_cast<int>(indices.size());
   int indices_buffer_size = m_num_indices * static_cast<int>(sizeof(unsigned int));
+
+  // Free old GPU data if needed
+  if (m_is_object_loaded) {
+    glDeleteVertexArrays(1, &m_VAO);
+    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_EBO);
+  }
 
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
