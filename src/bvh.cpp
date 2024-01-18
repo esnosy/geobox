@@ -124,6 +124,7 @@ static BVH::Node::AABB calc_aabb_indirect(std::vector<glm::vec3> const &points, 
 BVH::BVH(std::vector<glm::vec3> const &points) {
   if (points.empty()) {
     std::cerr << "Empty points, aborting creation of BVH..." << std::endl;
+    m_did_build_fail = true;
     return;
   }
 
