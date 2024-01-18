@@ -516,6 +516,10 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_vertices = vertices.value();
 
   BVH bvh(m_vertices);
+  if (bvh.did_build_fail()) {
+    std::cerr << "Failed to build BVH" << std::endl;
+    return;
+  }
   assert(bvh.count_primitives() == m_vertices.size());
   std::cout << "Num nodes = " << bvh.count_nodes() << std::endl;
   std::cout << "Max node size = " << bvh.calc_max_leaf_size() << std::endl;

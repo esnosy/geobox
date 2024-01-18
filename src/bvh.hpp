@@ -34,6 +34,7 @@ private:
   Node *m_current_free_node = nullptr;
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
+  bool m_did_build_fail = false;
   Node *new_node();
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
@@ -52,6 +53,8 @@ public:
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;
   [[nodiscard]] size_t count_primitives() const;
+
+  [[nodiscard]] bool did_build_fail() const;
 
   void foreach_primitive(std::function<void(unsigned int)> const &callback,
                          std::function<bool(Node::AABB const &aabb)> const &aabb_filter,
