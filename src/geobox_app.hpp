@@ -25,7 +25,8 @@ private:
   unsigned int m_VAO = 0;
   // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later
   // VAO references VBO and EBO so updates will be reflected when VAO is bound again
-  unsigned int m_VBO = 0;
+  unsigned int m_vertex_positions_buffer_object = 0;
+  unsigned int m_vertex_normals_buffer_object = 0;
   unsigned int m_EBO = 0;
   int m_num_indices = 0;
 

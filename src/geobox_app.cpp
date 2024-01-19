@@ -568,7 +568,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   // Free old GPU data if needed
   if (m_is_object_loaded) {
     glDeleteVertexArrays(1, &m_VAO);
-    glDeleteBuffers(1, &m_VBO);
+    glDeleteBuffers(1, &m_vertex_positions_buffer_object);
     glDeleteBuffers(1, &m_EBO);
   }
 
@@ -576,11 +576,10 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glGenVertexArrays(1, &VAO);
   glBindVertexArray(VAO);
 
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  unsigned int vertex_positions_buffer_object;
+  glGenBuffers(1, &vertex_positions_buffer_object);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_positions_buffer_object);
   glBufferData(GL_ARRAY_BUFFER, unique_vertices_buffer_size, unique_vertices.data(), GL_STATIC_DRAW);
-
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(0);
 
@@ -605,12 +604,18 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   for (glm::vec3 &vertex_normal : m_vertex_normals) {
     vertex_normal = glm::normalize(vertex_normal);
   }
-
+  // Vertex normals buffer has same size as vertex positions buffer if calculated properly
+  unsigned int vertex_normals_buffer_size = unique_vertices_buffer_size;
+  unsigned int vertex_normals_buffer_object;
+  glGenBuffers(1, &vertex_normals_buffer_object);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_normals_buffer_object);
+  glBufferData(GL_ARRAY_BUFFER, vertex_normals_buffer_size, m_vertex_normals.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(1);
 
   m_VAO = VAO;
-  m_VBO = VBO;
+  m_vertex_positions_buffer_object = vertex_positions_buffer_object;
+  m_vertex_normals_buffer_object = vertex_normals_buffer_object;
   m_EBO = EBO;
   m_is_object_loaded = true;
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
