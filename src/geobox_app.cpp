@@ -552,6 +552,40 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   std::cout << "Num unique vertices = " << unique_vertices.size() << std::endl;
 
+  m_vertices = unique_vertices;
+  m_indices = indices;
+
+  // Pre-calculate number of triangles per vertex (can be used later for weighting normals)
+  std::vector<float> num_triangles_per_vertex(m_vertices.size(), 0.0f);
+  for (unsigned int vi : m_indices) {
+    if (num_triangles_per_vertex[vi] == std::numeric_limits<float>::max()) {
+      std::cerr
+          << "Number of triangles per vertex exceeds maximum value of a float, aborting vertex normals calculation"
+          << std::endl
+          << "Failed to load mesh" << std::endl;
+      return;
+    }
+    num_triangles_per_vertex[vi] += 1;
+  }
+
+  m_vertex_normals = std::vector<glm::vec3>(m_vertices.size(), glm::vec3(0.0f));
+  for (unsigned int i = 0; i < m_indices.size(); i += 3) {
+    const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
+    const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
+    const glm::vec3 &c = unique_vertices[m_indices[i + 2]];
+    glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
+    for (int j = 0; j < 3; j++) {
+      unsigned int vi = m_indices[i + j];
+      // Avoid overflow by dividing values while accumulating them
+      m_vertex_normals[vi] += triangle_normal / num_triangles_per_vertex[vi];
+    }
+  }
+  // Ensure normalized normals, since weighted sum of normals can not be guaranteed to be normalized
+  // (some normals can be zero, weights might not sum up to 1.0f, etc...)
+  for (glm::vec3 &vertex_normal : m_vertex_normals) {
+    vertex_normal = glm::normalize(vertex_normal);
+  }
+
   if (unique_vertices.size() > (std::numeric_limits<unsigned int>::max() / sizeof(glm::vec3))) {
     std::cerr << "Aborting GPU mesh creation, too many vertices, TODO: support larger meshes" << std::endl;
     return;
@@ -588,22 +622,6 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_buffer_size, indices.data(), GL_STATIC_DRAW);
 
-  m_vertices = unique_vertices;
-  m_indices = indices;
-
-  m_vertex_normals = std::vector<glm::vec3>(m_vertices.size(), glm::vec3(0.0f));
-  for (unsigned int i = 0; i < m_indices.size(); i += 3) {
-    const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
-    const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
-    const glm::vec3 &c = unique_vertices[m_indices[i + 2]];
-    glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
-    for (int j = 0; j < 3; j++) {
-      m_vertex_normals[m_indices[i + j]] += triangle_normal;
-    }
-  }
-  for (glm::vec3 &vertex_normal : m_vertex_normals) {
-    vertex_normal = glm::normalize(vertex_normal);
-  }
   // Vertex normals buffer has same size as vertex positions buffer if calculated properly
   unsigned int vertex_normals_buffer_size = unique_vertices_buffer_size;
   unsigned int vertex_normals_buffer_object;
