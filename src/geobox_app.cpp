@@ -591,7 +591,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_vertices = unique_vertices;
   m_indices = indices;
 
-  m_vertex_normals.resize(m_vertices.size());
+  m_vertex_normals = std::vector<glm::vec3>(m_vertices.size(), glm::vec3(0.0f));
   for (unsigned int i = 0; i < m_indices.size(); i += 3) {
     const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
     const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
