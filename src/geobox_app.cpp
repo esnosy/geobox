@@ -359,7 +359,7 @@ void GeoBox_App::init_glfw_callbacks() {
 void GeoBox_App::process_input() {
   if (ImGui::GetIO().WantCaptureMouse)
     return;
-  const float camera_speed = 2.5f * m_delta_time; // adjust accordingly
+  const float camera_speed = 2.5f * m_delta_time * m_camera_orbit_radius;
   if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS) {
     m_camera_orbit_radius = glm::max(m_camera_orbit_radius - camera_speed, 0.0f);
   }
