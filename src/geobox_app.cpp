@@ -154,8 +154,9 @@ GeoBox_App::GeoBox_App() {
   init_glfw();
   init_glad();
   init_glfw_callbacks();
-  // NOTE: it is important to initialize ImGUI after initializing GLFW callbacks, otherwise setting GLFW callbacks will override ImGUI callbacks,
-  // ImGUI smartly chains its callbacks to any existing callbacks, so we initialize our callbacks first, and let ImGUI chain its callbacks
+  // NOTE: it is important to initialize ImGUI after initializing GLFW callbacks, otherwise setting GLFW callbacks will
+  // override ImGUI callbacks, ImGUI smartly chains its callbacks to any existing callbacks, so we initialize our
+  // callbacks first, and let ImGUI chain its callbacks
   init_imgui();
   if (!init_shaders()) {
     std::cerr << "Failed to initialize shaders" << std::endl;
