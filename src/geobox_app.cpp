@@ -602,6 +602,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   if (m_is_object_loaded) {
     glDeleteVertexArrays(1, &m_VAO);
     glDeleteBuffers(1, &m_vertex_positions_buffer_object);
+    glDeleteBuffers(1, &m_vertex_normals_buffer_object);
     glDeleteBuffers(1, &m_EBO);
   }
 
