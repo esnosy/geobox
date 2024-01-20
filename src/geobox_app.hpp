@@ -60,7 +60,6 @@ private:
   friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
   friend void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos);
   friend void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
-  friend void scroll_callback(GLFWwindow *window, double x_offset, double y_offset);
 
   // Main-loop internals
   void process_input();

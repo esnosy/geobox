@@ -348,21 +348,12 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int /*mod
   }
 }
 
-void scroll_callback(GLFWwindow *window, double /*x_offset*/, double y_offset) {
-  if (ImGui::GetIO().WantCaptureMouse)
-    return;
-  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
-  app->m_camera_fov_degrees -= static_cast<float>(y_offset);
-  app->m_camera_fov_degrees = glm::clamp(app->m_camera_fov_degrees, 1.0f, 45.0f);
-}
-
 void GeoBox_App::init_glfw_callbacks() {
   // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
   glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
   glfwSetWindowRefreshCallback(m_window, (GLFWwindowrefreshfun)window_refresh_callback);
   glfwSetCursorPosCallback(m_window, (GLFWcursorposfun)cursor_pos_callback);
   glfwSetMouseButtonCallback(m_window, (GLFWmousebuttonfun)mouse_button_callback);
-  glfwSetScrollCallback(m_window, (GLFWscrollfun)scroll_callback);
 }
 
 void GeoBox_App::process_input() {
