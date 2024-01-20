@@ -327,7 +327,7 @@ void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
       float x_offset = static_cast<float>(x_pos) - app->m_last_mouse_pos->x;
       float y_offset =
           app->m_last_mouse_pos->y - static_cast<float>(y_pos); // reversed since y-coordinates range from bottom to top
-      constexpr float mouse_sensitivity = 0.01f;
+      constexpr float mouse_sensitivity = glm::radians(0.4f);
       x_offset *= mouse_sensitivity;
       y_offset *= mouse_sensitivity;
       app->m_camera_inclination -= y_offset;
