@@ -504,28 +504,27 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     std::cerr << "Empty mesh: " << file_path << std::endl;
     return;
   }
-  m_vertices = vertices.value();
-  BVH bvh(m_vertices);
+  BVH bvh(vertices.value());
   if (bvh.did_build_fail()) {
     std::cerr << "Failed to build BVH" << std::endl;
     return;
   }
-  assert(bvh.count_primitives() == m_vertices.size());
+  assert(bvh.count_primitives() == vertices->size());
   std::cout << "Num nodes = " << bvh.count_nodes() << std::endl;
   std::cout << "Max node size = " << bvh.calc_max_leaf_size() << std::endl;
 
-  std::vector<unsigned int> indices(m_vertices.size());
-  std::vector<bool> is_remapped_vec(m_vertices.size(), false);
+  std::vector<unsigned int> indices(vertices->size());
+  std::vector<bool> is_remapped_vec(vertices->size(), false);
   std::vector<glm::vec3> unique_vertices;
-  unique_vertices.reserve(m_vertices.size());
+  unique_vertices.reserve(vertices->size());
 
   unsigned int final_unique_vertex_index = 0;
-  for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < m_vertices.size();
+  for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < vertices->size();
        original_unique_vertex_index++) {
     // Skip already remapped vertex
     if (is_remapped_vec[original_unique_vertex_index])
       continue;
-    glm::vec3 const &unique_vertex = m_vertices[original_unique_vertex_index];
+    glm::vec3 const &unique_vertex = vertices.value()[original_unique_vertex_index];
     constexpr float range = 0.0001f;
     Sphere sphere{.center = unique_vertex, .radius = range};
 
@@ -539,9 +538,9 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     auto aabb_filter = [&const_sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
       return sphere_aabb_intersection(const_sphere, aabb);
     };
-    auto primitive_filter = [&const_m_vertices = std::as_const(m_vertices),
+    auto primitive_filter = [&const_vertices = std::as_const(vertices.value()),
                              &unique_vertex](unsigned int potential_duplicate_vertex_index) {
-      return glm::distance2(unique_vertex, const_m_vertices[potential_duplicate_vertex_index]) <= (range * range);
+      return glm::distance2(unique_vertex, const_vertices[potential_duplicate_vertex_index]) <= (range * range);
     };
     bvh.foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
 
@@ -552,12 +551,9 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 
   std::cout << "Num unique vertices = " << unique_vertices.size() << std::endl;
 
-  m_vertices = unique_vertices;
-  m_indices = indices;
-
   // Pre-calculate number of triangles per vertex (can be used later for weighting normals)
-  std::vector<float> num_triangles_per_vertex(m_vertices.size(), 0.0f);
-  for (unsigned int vi : m_indices) {
+  std::vector<float> num_triangles_per_vertex(unique_vertices.size(), 0.0f);
+  for (unsigned int vi : indices) {
     if (num_triangles_per_vertex[vi] == std::numeric_limits<float>::max()) {
       std::cerr
           << "Number of triangles per vertex exceeds maximum value of a float, aborting vertex normals calculation"
@@ -568,21 +564,21 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     num_triangles_per_vertex[vi] += 1;
   }
 
-  m_vertex_normals = std::vector<glm::vec3>(m_vertices.size(), glm::vec3(0.0f));
-  for (unsigned int i = 0; i < m_indices.size(); i += 3) {
-    const glm::vec3 &a = unique_vertices[m_indices[i + 0]];
-    const glm::vec3 &b = unique_vertices[m_indices[i + 1]];
-    const glm::vec3 &c = unique_vertices[m_indices[i + 2]];
+  std::vector<glm::vec3> vertex_normals(unique_vertices.size(), glm::vec3(0.0f));
+  for (unsigned int i = 0; i < indices.size(); i += 3) {
+    const glm::vec3 &a = unique_vertices[indices[i + 0]];
+    const glm::vec3 &b = unique_vertices[indices[i + 1]];
+    const glm::vec3 &c = unique_vertices[indices[i + 2]];
     glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
     for (int j = 0; j < 3; j++) {
-      unsigned int vi = m_indices[i + j];
+      unsigned int vi = indices[i + j];
       // Avoid overflow by dividing values while accumulating them
-      m_vertex_normals[vi] += triangle_normal / num_triangles_per_vertex[vi];
+      vertex_normals[vi] += triangle_normal / num_triangles_per_vertex[vi];
     }
   }
   // Ensure normalized normals, since weighted sum of normals can not be guaranteed to be normalized
   // (some normals can be zero, weights might not sum up to 1.0f, etc...)
-  for (glm::vec3 &vertex_normal : m_vertex_normals) {
+  for (glm::vec3 &vertex_normal : vertex_normals) {
     vertex_normal = glm::normalize(vertex_normal);
   }
 
@@ -596,8 +592,11 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     std::cerr << "Aborting GPU mesh creation, too many indices, TODO: support larger meshes" << std::endl;
     return;
   }
-  m_num_indices = static_cast<int>(indices.size());
-  int indices_buffer_size = m_num_indices * static_cast<int>(sizeof(unsigned int));
+
+  // Set CPU mesh
+  m_vertices = unique_vertices;
+  m_indices = indices;
+  m_vertex_normals = vertex_normals;
 
   // Free old GPU data if needed
   if (m_is_object_loaded) {
@@ -605,6 +604,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     glDeleteBuffers(1, &m_vertex_positions_buffer_object);
     glDeleteBuffers(1, &m_EBO);
   }
+
+  // Create new GPU mesh data
 
   unsigned int VAO;
   glGenVertexArrays(1, &VAO);
@@ -617,6 +618,8 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(0);
 
+  m_num_indices = static_cast<int>(indices.size());
+  int indices_buffer_size = m_num_indices * static_cast<int>(sizeof(unsigned int));
   unsigned int EBO;
   glGenBuffers(1, &EBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -636,6 +639,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   m_vertex_normals_buffer_object = vertex_normals_buffer_object;
   m_EBO = EBO;
   m_is_object_loaded = true;
+
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
   PerformanceAPI_EndEvent();
 #endif
