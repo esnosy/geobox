@@ -161,6 +161,11 @@ GeoBox_App::GeoBox_App() {
     std::exit(-1);
   }
   glEnable(GL_DEPTH_TEST);
+
+  int width;
+  int height;
+  glfwGetFramebufferSize(m_window, &width, &height);
+  glViewport(0, 0, width, height);
 }
 
 void GeoBox_App::main_loop() {
