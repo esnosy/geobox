@@ -320,47 +320,10 @@ void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int hei
   glViewport(0, 0, width, height);
 }
 
-void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos) {
-  if (ImGui::GetIO().WantCaptureMouse)
-    return;
-  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
-  if (app->m_is_left_mouse_down) {
-    if (app->m_last_mouse_pos.has_value()) {
-      float x_offset = static_cast<float>(x_pos) - app->m_last_mouse_pos->x;
-      float y_offset =
-          app->m_last_mouse_pos->y - static_cast<float>(y_pos); // reversed since y-coordinates range from bottom to top
-      constexpr float mouse_sensitivity = glm::radians(0.4f);
-      x_offset *= mouse_sensitivity;
-      y_offset *= mouse_sensitivity;
-      app->m_camera_inclination -= y_offset;
-      app->m_camera_azimuth += x_offset;
-    }
-    app->m_last_mouse_pos = glm::vec2(x_pos, y_pos);
-  }
-}
-
-void mouse_button_callback(GLFWwindow *window, int button, int action, int /*mods*/) {
-  if (ImGui::GetIO().WantCaptureMouse)
-    return;
-  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
-  if (button == GLFW_MOUSE_BUTTON_LEFT) {
-    if (action == GLFW_PRESS) {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      app->m_is_left_mouse_down = true;
-      app->m_last_mouse_pos.reset();
-    } else {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      app->m_is_left_mouse_down = false;
-    }
-  }
-}
-
 void GeoBox_App::init_glfw_callbacks() {
   // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
   glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
   glfwSetWindowRefreshCallback(m_window, (GLFWwindowrefreshfun)window_refresh_callback);
-  glfwSetCursorPosCallback(m_window, (GLFWcursorposfun)cursor_pos_callback);
-  glfwSetMouseButtonCallback(m_window, (GLFWmousebuttonfun)mouse_button_callback);
 }
 
 void GeoBox_App::process_input() {
@@ -378,6 +341,26 @@ void GeoBox_App::process_input() {
   }
   if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS) {
     // TODO: do something
+  }
+  if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    double x_pos;
+    double y_pos;
+    glfwGetCursorPos(m_window, &x_pos, &y_pos);
+    if (m_last_mouse_pos.has_value()) {
+      float x_offset = static_cast<float>(x_pos) - m_last_mouse_pos->x;
+      float y_offset =
+          m_last_mouse_pos->y - static_cast<float>(y_pos); // reversed since y-coordinates range from bottom to top
+      float mouse_sensitivity = glm::radians(20.0f) * m_delta_time;
+      x_offset *= mouse_sensitivity;
+      y_offset *= mouse_sensitivity;
+      m_camera_inclination -= y_offset;
+      m_camera_azimuth += x_offset;
+    }
+    m_last_mouse_pos = glm::vec2(x_pos, y_pos);
+  } else {
+    m_last_mouse_pos.reset();
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
 }
 

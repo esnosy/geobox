@@ -45,7 +45,6 @@ private:
   float m_delta_time = 0.0f;      // Time between current frame and last frame
   float m_last_frame_time = 0.0f; // Time of last frame
 
-  bool m_is_left_mouse_down = false;
   std::optional<glm::vec2> m_last_mouse_pos;
 
   // Init
@@ -58,8 +57,6 @@ private:
   // Callbacks
   friend void window_refresh_callback(GLFWwindow *window);
   friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
-  friend void cursor_pos_callback(GLFWwindow *window, double x_pos, double y_pos);
-  friend void mouse_button_callback(GLFWwindow *window, int button, int action, int mods);
 
   // Main-loop internals
   void process_input();
