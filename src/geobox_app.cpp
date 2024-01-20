@@ -396,11 +396,11 @@ void GeoBox_App::render() {
 
   glUseProgram(m_default_shader_program);
 
-  auto time = static_cast<float>(glfwGetTime());
-  float green_value = std::sin(time) / 2.0f + 0.5f;
-
   int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
-  glUniform4f(object_color_uniform_location, 0.0f, green_value, 0.0f, 1.0f);
+  glUniform3f(object_color_uniform_location, 1.0f, 1.0f, 1.0f);
+
+  int light_color_uniform_location = glGetUniformLocation(m_default_shader_program, "light_color");
+  glUniform3f(light_color_uniform_location, 1.0f, 1.0f, 1.0f);
 
   glm::mat4 model(1.0f);
 
