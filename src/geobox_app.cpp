@@ -222,6 +222,15 @@ void GeoBox_App::init_glfw() {
 
   // Swap interval of 1: reduces tearing with minimal input latency
   glfwSwapInterval(1);
+
+  // Raw mouse motion, from GLFW documentation:
+  // "Raw mouse motion is closer to the actual motion of the mouse across a surface. It is not affected by the scaling
+  // and acceleration applied to the motion of the desktop cursor. That processing is suitable for a cursor while raw
+  // motion is better for controlling for example a 3D camera. Because of this, raw mouse motion is only provided when
+  // the cursor is disabled."
+  if (glfwRawMouseMotionSupported()) {
+    glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+  }
 }
 
 void GeoBox_App::init_glad() {
