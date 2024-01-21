@@ -417,9 +417,9 @@ void GeoBox_App::render() {
   };
   glm::vec3 camera_pos = orbit_sphere_normal * m_camera_orbit_radius;
   glm::mat3 camera_basis{
-      orbit_sphere_tangent,
-      orbit_sphere_bi_tangent,
-      orbit_sphere_normal,
+      orbit_sphere_tangent,    // Right/Left (if Y is up and Z is forward in OpenGL, then X is obviously Left/Right)
+      orbit_sphere_bi_tangent, // Up/Down (Y is up in OpenGL, that is why second basis is considered Up/Down)
+      orbit_sphere_normal,     // Forward/Backwards (Z is considered camera forward in OpenGL)
   };
   glm::mat4 camera(1.0f);
   camera = glm::translate(camera, camera_pos);
