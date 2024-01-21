@@ -413,7 +413,7 @@ void GeoBox_App::render() {
   glm::vec3 orbit_sphere_bi_tangent{
       cos_camera_inclination * cos_camera_azimuth,
       cos_camera_inclination * sin_camera_azimuth,
-      -sin_camera_inclination,
+      -1 * sin_camera_inclination,
   };
   glm::vec3 camera_pos = orbit_sphere_normal * m_camera_orbit_radius;
   glm::mat3 camera_basis{
