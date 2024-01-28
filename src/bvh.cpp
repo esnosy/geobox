@@ -11,12 +11,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include "bvh.hpp"
-
-bool is_close(float a, float b) {
-  // https://isocpp.org/wiki/faq/newbie#floating-point-arith
-  constexpr float epsilon = 1e-5f;
-  return std::abs(a - b) <= epsilon * std::abs(a);
-}
+#include "common.hpp"
 
 struct Ray {
   glm::vec3 origin;

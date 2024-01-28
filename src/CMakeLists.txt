@@ -14,7 +14,17 @@ if (${ENABLE_SUPERLUMINAL_PERF_API})
 endif ()
 
 target_link_libraries(geobox PRIVATE glad glfw imgui ImGuiFileDialog glm::glm stb_image)
-target_sources(geobox PRIVATE main.cpp geobox_app.cpp geobox_app.hpp bvh.cpp bvh.hpp)
+target_sources(geobox PRIVATE
+        main.cpp
+        geobox_app.cpp
+        geobox_app.hpp
+        bvh.cpp
+        bvh.hpp
+        orbit_camera.cpp
+        orbit_camera.hpp
+        common.cpp
+        common.hpp
+)
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)
 include(CheckIPOSupported)

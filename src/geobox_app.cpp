@@ -44,6 +44,12 @@ constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET(100, 100);
 constexpr ImVec2 INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE(600, 500);
 
+constexpr float CAMERA_ORBIT_ZOOM_SPEED_MULTIPLIER = 2.5f;
+constexpr float CAMERA_PAN_SPEED_MULTIPLIER = 0.05f;
+constexpr float CAMERA_ORBIT_ROTATE_SPEED_RADIANS = glm::radians(20.0f);
+// Minimum value for orbit radius when calculating various camera movement speeds based on orbit radius
+constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
+
 [[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs) {
   auto original_pos = ifs.tellg();
   ifs.seekg(0, std::ifstream::end);
@@ -339,12 +345,18 @@ void GeoBox_App::init_glfw_callbacks() {
 void GeoBox_App::process_input() {
   if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureMouse || imgui_io.WantCaptureKeyboard)
     return;
-  const float camera_speed = 2.5f * glm::max(m_camera_orbit_radius, 0.1f) * m_delta_time;
+  float orbit_radius_as_speed_multiplier = glm::max(m_camera.get_orbit_radius(), MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER);
+  float camera_orbit_zoom_speed = CAMERA_ORBIT_ZOOM_SPEED_MULTIPLIER * orbit_radius_as_speed_multiplier * m_delta_time;
+  float camera_orbit_zoom_offset = 0.0f;
+  glm::vec3 camera_orbit_origin_offset(0.0f);
+  float camera_inclination_offset = 0.0f;
+  float camera_azimuth_offset = 0.0f;
+
   if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS) {
-    m_camera_orbit_radius = glm::max(m_camera_orbit_radius - camera_speed, 0.0f);
+    camera_orbit_zoom_offset = -1.0f * camera_orbit_zoom_speed;
   }
   if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS) {
-    m_camera_orbit_radius += camera_speed;
+    camera_orbit_zoom_offset = camera_orbit_zoom_speed;
   }
   if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS) {
     // TODO: do something
@@ -359,19 +371,25 @@ void GeoBox_App::process_input() {
     glfwGetCursorPos(m_window, &x_pos, &y_pos);
     if (m_last_mouse_pos.has_value()) {
       float x_offset = static_cast<float>(x_pos) - m_last_mouse_pos->x;
-      float y_offset =
-          m_last_mouse_pos->y - static_cast<float>(y_pos); // reversed since y-coordinates range from bottom to top
-      float mouse_sensitivity = glm::radians(20.0f) * m_delta_time;
-      x_offset *= mouse_sensitivity;
-      y_offset *= mouse_sensitivity;
-      m_camera_inclination -= y_offset;
-      m_camera_azimuth += x_offset;
+      // reversed since y-coordinates range from bottom to top
+      float y_offset = m_last_mouse_pos->y - static_cast<float>(y_pos);
+
+      if (glfwGetKey(m_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        camera_orbit_origin_offset = (m_camera.get_right() * x_offset + m_camera.get_up() * y_offset) *
+                                     CAMERA_PAN_SPEED_MULTIPLIER * m_delta_time * orbit_radius_as_speed_multiplier;
+      } else {
+        float orbit_speed = CAMERA_ORBIT_ROTATE_SPEED_RADIANS * m_delta_time;
+        camera_inclination_offset = -1.0f * y_offset * orbit_speed;
+        camera_azimuth_offset = x_offset * orbit_speed;
+      }
     }
     m_last_mouse_pos = glm::vec2(x_pos, y_pos);
   } else {
     m_last_mouse_pos.reset();
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
+  m_camera.update(camera_inclination_offset, camera_azimuth_offset, camera_orbit_zoom_offset,
+                  camera_orbit_origin_offset);
 }
 
 void GeoBox_App::render() {
@@ -394,38 +412,7 @@ void GeoBox_App::render() {
   glUniform3f(light_color_uniform_location, 1.0f, 1.0f, 1.0f);
 
   glm::mat4 model(1.0f);
-
-  // Spherical coordinates unit vectors: https://mathworld.wolfram.com/SphericalCoordinates.html
-  float sin_camera_inclination = glm::sin(m_camera_inclination);
-  float cos_camera_inclination = glm::cos(m_camera_inclination);
-  float sin_camera_azimuth = glm::sin(m_camera_azimuth);
-  float cos_camera_azimuth = glm::cos(m_camera_azimuth);
-  glm::vec3 orbit_sphere_normal{
-      sin_camera_inclination * cos_camera_azimuth,
-      sin_camera_inclination * sin_camera_azimuth,
-      cos_camera_inclination,
-  };
-  glm::vec3 orbit_sphere_tangent{
-      -1 * sin_camera_azimuth,
-      cos_camera_azimuth,
-      0,
-  };
-  glm::vec3 orbit_sphere_bi_tangent{
-      cos_camera_inclination * cos_camera_azimuth,
-      cos_camera_inclination * sin_camera_azimuth,
-      -1 * sin_camera_inclination,
-  };
-  glm::vec3 camera_pos = orbit_sphere_normal * m_camera_orbit_radius;
-  glm::mat3 camera_basis{
-      orbit_sphere_tangent,    // Right/Left (if Y is up and Z is forward in OpenGL, then X is obviously Left/Right)
-      orbit_sphere_bi_tangent, // Up/Down (Y is up in OpenGL, that is why second basis is considered Up/Down)
-      orbit_sphere_normal,     // Forward/Backwards (Z is considered camera forward in OpenGL)
-  };
-  glm::mat4 camera(1.0f);
-  camera = glm::translate(camera, camera_pos);
-  camera = camera * glm::mat4(camera_basis);
-
-  glm::mat4 view = glm::inverse(camera);
+  glm::mat4 view = m_camera.get_view_matrix();
   glm::mat4 projection =
       glm::perspective(glm::radians(m_camera_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 

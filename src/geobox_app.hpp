@@ -8,6 +8,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "orbit_camera.hpp"
+
+constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
+constexpr float DEFAULT_ORBIT_CAMERA_AZIMUTH = 0.0f;
+constexpr float DEFAULT_ORBIT_CAMERA_RADIUS = 1.0f;
+constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
+
 class GeoBox_App {
 public:
   GeoBox_App();
@@ -37,10 +44,8 @@ private:
 
   float m_camera_fov_degrees = 45.0f;
 
-  // Orbit camera
-  float m_camera_inclination = 0.0f;
-  float m_camera_azimuth = 0.0f;
-  float m_camera_orbit_radius = 1.0f;
+  Orbit_Camera m_camera = Orbit_Camera(DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH,
+                                       DEFAULT_ORBIT_CAMERA_RADIUS, DEFAULT_ORBIT_CAMERA_ORIGIN);
 
   float m_delta_time = 0.0f;      // Time between current frame and last frame
   float m_last_frame_time = 0.0f; // Time of last frame
