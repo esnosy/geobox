@@ -159,12 +159,12 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
     }
 
     // Calculate variance
-    if (node->num_primitives() > static_cast<size_t>(std::numeric_limits<float>::max())) {
+    auto num_node_vertices = static_cast<float>(node->num_primitives());
+    if (num_node_vertices > std::numeric_limits<float>::max()) {
       std::cerr << "Too many points for variance calculation, aborting BVH build" << std::endl;
       m_did_build_fail = true;
       return;
     }
-    auto num_node_vertices = static_cast<float>(node->num_primitives());
     glm::vec3 mean_of_squares(0);
     glm::vec3 mean(0);
     for (unsigned int const *i = node->first; i <= node->last; i++) {
