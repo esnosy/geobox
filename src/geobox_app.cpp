@@ -358,12 +358,6 @@ void GeoBox_App::process_input() {
   if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS) {
     camera_orbit_zoom_offset = camera_orbit_zoom_speed;
   }
-  if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS) {
-    // TODO: do something
-  }
-  if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS) {
-    // TODO: do something
-  }
   if (glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     double x_pos;
