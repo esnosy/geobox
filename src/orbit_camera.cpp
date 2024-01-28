@@ -29,7 +29,7 @@ Orbit_Camera::Orbit_Camera(float inclination, float azimuth, float orbit_radius,
       -1 * sin_camera_inclination,
   };
   glm::vec3 camera_pos = m_orbit_sphere_normal * m_orbit_radius + m_orbit_origin;
-  glm::mat3 camera_basis = glm::mat3(
+  glm::mat3 camera_basis(
       m_orbit_sphere_tangent,    // Right/Left (if Y is up and Z is forward in OpenGL, then X is obviously Left/Right)
       m_orbit_sphere_bi_tangent, // Up/Down (Y is up in OpenGL, that is why second basis is considered Up/Down)
       m_orbit_sphere_normal      // Forward/Backwards (Z is considered camera forward in OpenGL)
