@@ -33,11 +33,8 @@ constexpr int INIT_WINDOW_WIDTH = 800;
 constexpr int INIT_WINDOW_HEIGHT = 600;
 constexpr const char *WINDOW_TITLE = "GeoBox";
 
-constexpr const char *IMGUI_MAIN_WINDOW_TITLE = WINDOW_TITLE;
-constexpr ImVec2 INITIAL_IMGUI_MAIN_WINDOW_SIZE(550, 680);
-
 constexpr const char *LOAD_STL_DIALOG_KEY = "Load_STL_Dialog_Key";
-constexpr const char *LOAD_STL_BUTTON_DIALOG_TITLE = "Load .stl";
+constexpr const char *LOAD_STL_BUTTON_AND_DIALOG_TITLE = "Load .stl";
 
 constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 
@@ -447,20 +444,22 @@ void GeoBox_App::render() {
   ImGui::NewFrame();
 
   const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
-  ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_Once);
-  ImGui::SetNextWindowSize(INITIAL_IMGUI_MAIN_WINDOW_SIZE, ImGuiCond_Once);
 
-  ImGui::Begin(IMGUI_MAIN_WINDOW_TITLE, nullptr, ImGuiWindowFlags_None);
-
-  if (ImGui::Button(LOAD_STL_BUTTON_DIALOG_TITLE)) {
-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
-                                   main_viewport->WorkPos.y + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
-                            ImGuiCond_Once);
-    ImGui::SetNextWindowSize(INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE, ImGuiCond_Once);
-
-    ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_DIALOG_TITLE, ".stl", ".");
+  // Thanks!: https://github.com/ocornut/imgui/issues/6307
+  if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenu("File")) {
+      if (ImGui::MenuItem(LOAD_STL_BUTTON_AND_DIALOG_TITLE)) {
+        ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_AND_DIALOG_TITLE, ".stl", ".");
+      }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMainMenuBar();
   }
 
+  ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
+                                 main_viewport->WorkPos.y + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
+                          ImGuiCond_Once);
+  ImGui::SetNextWindowSize(INITIAL_IMGUI_FILE_DIALOG_WINDOW_SIZE, ImGuiCond_Once);
   if (ImGuiFileDialog::Instance()->Display(LOAD_STL_DIALOG_KEY)) {
     if (ImGuiFileDialog::Instance()->IsOk()) {
       std::string file_path = ImGuiFileDialog::Instance()->GetFilePathName();
@@ -468,8 +467,6 @@ void GeoBox_App::render() {
     }
     ImGuiFileDialog::Instance()->Close();
   }
-
-  ImGui::End();
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
