@@ -50,6 +50,8 @@ constexpr float CAMERA_ORBIT_ROTATE_SPEED_RADIANS = glm::radians(20.0f);
 // Minimum value for orbit radius when calculating various camera movement speeds based on orbit radius
 constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 
+constexpr int NUM_ANTIALIASING_SAMPLES = 8;
+
 [[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs) {
   auto original_pos = ifs.tellg();
   ifs.seekg(0, std::ifstream::end);
@@ -175,6 +177,9 @@ GeoBox_App::GeoBox_App() {
   int height;
   glfwGetFramebufferSize(m_window, &width, &height);
   glViewport(0, 0, width, height);
+
+  // Enable anti-aliasing
+  glEnable(GL_MULTISAMPLE);
 }
 
 void GeoBox_App::main_loop() {
@@ -214,6 +219,7 @@ void GeoBox_App::init_glfw() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
+  glfwWindowHint(GLFW_SAMPLES, NUM_ANTIALIASING_SAMPLES);
   m_window = glfwCreateWindow(INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
   if (m_window == nullptr) {
     std::cerr << "Failed to create GLFW window" << std::endl;
