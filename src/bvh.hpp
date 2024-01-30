@@ -43,7 +43,8 @@ private:
 
 public:
   BVH() = delete;
-  // Memory is freed in destructor, avoid double free by disabling copy
+  // Memory is freed in destructor,
+  // avoid double free by disabling copy constructor and copy assignment operator,
   // also known as the "Rule of three"
   BVH(BVH const &) = delete;
   BVH &operator=(BVH const &) = delete;
