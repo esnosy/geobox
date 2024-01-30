@@ -20,8 +20,12 @@ public:
   void update(float inclination_offset, float azimuth_offset, float orbit_radius_offset, glm::vec3 orbit_origin_offset);
 
   [[nodiscard]] glm::mat4 get_view_matrix() const { return m_view_matrix; }
+
   [[nodiscard]] float get_orbit_radius() const { return m_orbit_radius; }
+
   [[nodiscard]] glm::vec3 get_right() const { return m_orbit_sphere_tangent; }
+
   [[nodiscard]] glm::vec3 get_up() const { return m_orbit_sphere_bi_tangent; }
+
   [[nodiscard]] glm::vec3 get_forward() const { return -1.0f * m_orbit_sphere_normal; }
 };
