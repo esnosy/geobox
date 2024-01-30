@@ -21,8 +21,7 @@ public:
 
   [[nodiscard]] glm::mat4 get_view_matrix() const { return m_view_matrix; }
   [[nodiscard]] float get_orbit_radius() const { return m_orbit_radius; }
-  // TODO: I'm still not sure why we have to negate right, up and forward, but this way it works, hhhhh :/
-  [[nodiscard]] glm::vec3 get_right() const { return -1.0f * m_orbit_sphere_tangent; }
-  [[nodiscard]] glm::vec3 get_up() const { return -1.0f * m_orbit_sphere_bi_tangent; }
+  [[nodiscard]] glm::vec3 get_right() const { return m_orbit_sphere_tangent; }
+  [[nodiscard]] glm::vec3 get_up() const { return m_orbit_sphere_bi_tangent; }
   [[nodiscard]] glm::vec3 get_forward() const { return -1.0f * m_orbit_sphere_normal; }
 };

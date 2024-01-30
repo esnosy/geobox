@@ -369,12 +369,22 @@ void GeoBox_App::process_input() {
       float y_offset = m_last_mouse_pos->y - static_cast<float>(y_pos);
 
       if (glfwGetKey(m_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        camera_orbit_origin_offset = (m_camera.get_right() * x_offset + m_camera.get_up() * y_offset) *
+        // We negate the expression because we are moving the camera, and we want the scene to follow the mouse
+        // movement, so we negate the camera movement to achieve that
+        camera_orbit_origin_offset = -1.0f * (m_camera.get_right() * x_offset + m_camera.get_up() * y_offset) *
                                      CAMERA_PAN_SPEED_MULTIPLIER * m_delta_time * orbit_radius_as_speed_multiplier;
       } else {
         float orbit_speed = CAMERA_ORBIT_ROTATE_SPEED_RADIANS * m_delta_time;
-        camera_inclination_offset = -1.0f * y_offset * orbit_speed;
-        camera_azimuth_offset = x_offset * orbit_speed;
+        // if y_offset increases from bottom to top we increase inclination in the same direction,
+        // increasing inclination angle lowers camera position, which is what we want,
+        // we want the scene to orbit up when mouse is dragged up,
+        // so we orbit the camera down to achieve the effect of orbiting the scene up
+        camera_inclination_offset = y_offset * orbit_speed;
+        // if x_offset increases from left to right, we want to decrease the camera's azimuth (also called polar angle),
+        // this will cause the camera to rotate left around the orbit origin,
+        // so that when the mouse moves right, the scene also appears rotating right,
+        // which is what we want
+        camera_azimuth_offset = -1.0f * x_offset * orbit_speed;
       }
     }
     m_last_mouse_pos = glm::vec2(x_pos, y_pos);
