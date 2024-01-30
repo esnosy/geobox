@@ -434,6 +434,9 @@ void GeoBox_App::render() {
   int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
+  int camera_pos_uniform_location = glGetUniformLocation(m_default_shader_program, "camera_position");
+  glUniform3fv(camera_pos_uniform_location, 1, glm::value_ptr(m_camera.get_camera_pos()));
+
   if (m_is_object_loaded) {
     glBindVertexArray(m_VAO);
     glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, nullptr);

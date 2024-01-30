@@ -31,10 +31,10 @@ Orbit_Camera::Orbit_Camera(float inclination, float azimuth, float orbit_radius,
   // We negate bi-tangent because inclination angle is relative to +Z axis, as inclination increases, Z value decreases,
   // and we want the bi-tangent to point to the direction of increasing Z instead
   m_orbit_sphere_bi_tangent *= -1;
-  glm::vec3 camera_pos = m_orbit_sphere_normal * m_orbit_radius + m_orbit_origin;
+  m_camera_pos = m_orbit_sphere_normal * m_orbit_radius + m_orbit_origin;
   glm::mat3 camera_basis(m_orbit_sphere_tangent, m_orbit_sphere_bi_tangent, m_orbit_sphere_normal);
   glm::mat4 camera(1.0f);
-  camera = glm::translate(camera, camera_pos);
+  camera = glm::translate(camera, m_camera_pos);
   camera = camera * glm::mat4(camera_basis);
 
   m_view_matrix = glm::inverse(camera);

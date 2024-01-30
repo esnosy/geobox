@@ -10,6 +10,7 @@ private:
   float m_orbit_radius;
   glm::vec3 m_orbit_origin;
 
+  glm::vec3 m_camera_pos{};
   glm::vec3 m_orbit_sphere_tangent{};
   glm::vec3 m_orbit_sphere_bi_tangent{};
   glm::vec3 m_orbit_sphere_normal{};
@@ -28,4 +29,6 @@ public:
   [[nodiscard]] glm::vec3 get_up() const { return m_orbit_sphere_bi_tangent; }
 
   [[nodiscard]] glm::vec3 get_forward() const { return -1.0f * m_orbit_sphere_normal; }
+
+  [[nodiscard]] glm::vec3 get_camera_pos() const { return m_camera_pos; }
 };
