@@ -18,13 +18,13 @@ struct Ray {
   glm::vec3 direction;
 };
 
-float min_component(glm::vec3 const &v) { return std::min(v.x, std::min(v.y, v.z)); }
+float min_component(const glm::vec3 &v) { return std::min(v.x, std::min(v.y, v.z)); }
 
-float max_component(glm::vec3 const &v) { return std::max(v.x, std::min(v.y, v.z)); }
+float max_component(const glm::vec3 &v) { return std::max(v.x, std::min(v.y, v.z)); }
 
-bool is_not_all_zeros(glm::vec3 const &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
+bool is_not_all_zeros(const glm::vec3 &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
 
-static float ray_aabb_intersection(Ray const &ray, BVH::Node::AABB const &aabb) {
+static float ray_aabb_intersection(const Ray &ray, BVH::Node::AABB const &aabb) {
   assert(is_not_all_zeros(ray.direction));
   // ray-aabb intersection:
   // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
@@ -85,7 +85,7 @@ int main() {
 
   int i = 0;
   float t;
-  for (Test_Case const &c : cases) {
+  for (const Test_Case &c : cases) {
     std::cout << "Test Case: " << i << std::endl;
     t = ray_aabb_intersection(c.ray, c.aabb);
     if ((t >= 0) != c.does_intersect) {
@@ -100,23 +100,23 @@ int main() {
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
-static BVH::Node::AABB calc_aabb_indirect(std::vector<glm::vec3> const &points, unsigned int const *first,
-                                          unsigned int const *last) {
+static BVH::Node::AABB calc_aabb_indirect(const std::vector<glm::vec3> &points, const unsigned int *first,
+                                          const unsigned int *last) {
   if (points.empty()) {
     return {};
   }
   BVH::Node::AABB aabb{.min = points[*first], .max = points[*first]};
-  for (unsigned int const *i = first; i <= last; i++) {
+  for (const unsigned int *i = first; i <= last; i++) {
     aabb.min = glm::min(aabb.min, points[*i]);
   }
   // Separate loop, so even without compiler optimization, similar instructions are in a loop
-  for (unsigned int const *i = first; i <= last; i++) {
+  for (const unsigned int *i = first; i <= last; i++) {
     aabb.max = glm::max(aabb.max, points[*i]);
   }
   return aabb;
 }
 
-BVH::BVH(std::vector<glm::vec3> const &points) {
+BVH::BVH(const std::vector<glm::vec3> &points) {
   if (points.empty()) {
     std::cerr << "Empty points, aborting creation of BVH..." << std::endl;
     m_did_build_fail = true;
@@ -167,7 +167,7 @@ BVH::BVH(std::vector<glm::vec3> const &points) {
     }
     glm::vec3 mean_of_squares(0);
     glm::vec3 mean(0);
-    for (unsigned int const *i = node->first; i <= node->last; i++) {
+    for (const unsigned int *i = node->first; i <= node->last; i++) {
       const glm::vec3 &v = points[*i];
       glm::vec3 tmp = v / num_node_vertices;
       mean += tmp;
@@ -263,8 +263,8 @@ void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) con
   }
 }
 
-void BVH::foreach_node_leaf(std::function<void(const Node *)> const &callback,
-                            std::function<bool(BVH::Node::AABB const &aabb)> const &aabb_filter) const {
+void BVH::foreach_node_leaf(const std::function<void(const Node *)> &callback,
+                            const std::function<bool(BVH::Node::AABB const &aabb)> &aabb_filter) const {
   foreach_node(
       [&callback](const Node *node) {
         if (node->is_leaf())
@@ -273,9 +273,9 @@ void BVH::foreach_node_leaf(std::function<void(const Node *)> const &callback,
       aabb_filter);
 }
 
-void BVH::foreach_primitive(std::function<void(unsigned int)> const &callback,
-                            std::function<bool(const BVH::Node::AABB &)> const &aabb_filter,
-                            std::function<bool(unsigned int)> const &primitive_filter) const {
+void BVH::foreach_primitive(const std::function<void(unsigned int)> &callback,
+                            const std::function<bool(const BVH::Node::AABB &)> &aabb_filter,
+                            const std::function<bool(unsigned int)> &primitive_filter) const {
   foreach_node_leaf(
       [&callback, &primitive_filter](const Node *node) {
         for (unsigned int const *i = node->first; i <= node->last; i++) {

@@ -6,6 +6,6 @@ bool is_close(float a, float b) {
   return std::abs(a - b) <= epsilon * std::abs(a);
 }
 
-bool is_close(glm::vec3 const &a, glm::vec3 const &b) {
+bool is_close(const glm::vec3 &a, const glm::vec3 &b) {
   return is_close(a.x, b.x) && is_close(a.y, b.y) && is_close(a.z, b.z);
 }

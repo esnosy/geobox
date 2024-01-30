@@ -139,11 +139,11 @@ static std::optional<std::string> read_file(const std::string &file_path) {
   return std::string(std::istreambuf_iterator(ifs), {});
 }
 
-glm::vec3 closest_point_on_aabb(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+glm::vec3 closest_point_on_aabb(const glm::vec3 &point, BVH::Node::AABB const &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
-float point_aabb_distance_squared(glm::vec3 const &point, BVH::Node::AABB const &aabb) {
+float point_aabb_distance_squared(const glm::vec3 &point, BVH::Node::AABB const &aabb) {
   return glm::distance2(point, closest_point_on_aabb(point, aabb));
 }
 
@@ -152,7 +152,7 @@ struct Sphere {
   float radius;
 };
 
-bool sphere_aabb_intersection(Sphere const &sphere, BVH::Node::AABB const &aabb) {
+bool sphere_aabb_intersection(const Sphere &sphere, BVH::Node::AABB const &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
@@ -506,7 +506,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     // Skip already remapped vertex
     if (is_remapped_vec[original_unique_vertex_index])
       continue;
-    glm::vec3 const &unique_vertex = vertices.value()[original_unique_vertex_index];
+    const glm::vec3 &unique_vertex = vertices.value()[original_unique_vertex_index];
     constexpr float range = 0.0001f;
     Sphere sphere{.center = unique_vertex, .radius = range};
 

@@ -38,8 +38,8 @@ private:
   Node *new_node();
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
-  void foreach_node_leaf(std::function<void(const Node *)> const &callback,
-                         std::function<bool(Node::AABB const &aabb)> const &aabb_filter) const;
+  void foreach_node_leaf(const std::function<void(const Node *)> &callback,
+                         const std::function<bool(Node::AABB const &aabb)> &aabb_filter) const;
 
 public:
   BVH() = delete;
@@ -48,7 +48,7 @@ public:
   BVH(BVH const &) = delete;
   BVH &operator=(BVH const &) = delete;
 
-  explicit BVH(std::vector<glm::vec3> const &points);
+  explicit BVH(const std::vector<glm::vec3> &points);
   ~BVH();
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;
@@ -56,7 +56,7 @@ public:
 
   [[nodiscard]] bool did_build_fail() const;
 
-  void foreach_primitive(std::function<void(unsigned int)> const &callback,
-                         std::function<bool(Node::AABB const &aabb)> const &aabb_filter,
-                         std::function<bool(unsigned int)> const &primitive_filter) const;
+  void foreach_primitive(const std::function<void(unsigned int)> &callback,
+                         const std::function<bool(Node::AABB const &aabb)> &aabb_filter,
+                         const std::function<bool(unsigned int)> &primitive_filter) const;
 };
