@@ -32,11 +32,7 @@ Orbit_Camera::Orbit_Camera(float inclination, float azimuth, float orbit_radius,
   // and we want the bi-tangent to point to the direction of increasing Z instead
   m_orbit_sphere_bi_tangent *= -1;
   glm::vec3 camera_pos = m_orbit_sphere_normal * m_orbit_radius + m_orbit_origin;
-  glm::mat3 camera_basis(
-      m_orbit_sphere_tangent,    // Right/Left (if Y is up and Z is forward in OpenGL, then X is obviously Left/Right)
-      m_orbit_sphere_bi_tangent, // Up/Down (Y is up in OpenGL, that is why second basis is considered Up/Down)
-      m_orbit_sphere_normal      // Forward/Backwards (Z is considered camera forward in OpenGL)
-  );
+  glm::mat3 camera_basis(m_orbit_sphere_tangent, m_orbit_sphere_bi_tangent, m_orbit_sphere_normal);
   glm::mat4 camera(1.0f);
   camera = glm::translate(camera, camera_pos);
   camera = camera * glm::mat4(camera_basis);
