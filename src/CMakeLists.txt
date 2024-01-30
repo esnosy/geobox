@@ -51,6 +51,8 @@ include(CPack)
 add_executable(test_ray_aabb_intersection
         bvh.cpp
         bvh.hpp
+        common.cpp
+        common.hpp
 )
 target_link_libraries(test_ray_aabb_intersection PRIVATE glm::glm)
 target_compile_features(test_ray_aabb_intersection PRIVATE cxx_std_20)
