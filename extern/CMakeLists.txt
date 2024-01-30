@@ -9,7 +9,7 @@ set(GLFW_BUILD_DOCS OFF)
 set(GLFW_INSTALL OFF)
 add_subdirectory(glfw-3.3.9)
 
-set(IMGUI_SRC_DIR imgui-1.90)
+set(IMGUI_SRC_DIR imgui-1.90.1-docking)
 add_library(
         imgui STATIC
         ${IMGUI_SRC_DIR}/imgui.cpp
