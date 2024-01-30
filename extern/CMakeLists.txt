@@ -9,7 +9,18 @@ set(GLFW_BUILD_DOCS OFF)
 set(GLFW_INSTALL OFF)
 add_subdirectory(glfw-3.3.9)
 
-add_subdirectory(imgui-1.90)
+set(IMGUI_SRC_DIR imgui-1.90)
+add_library(
+        imgui STATIC
+        ${IMGUI_SRC_DIR}/imgui.cpp
+        ${IMGUI_SRC_DIR}/imgui_demo.cpp
+        ${IMGUI_SRC_DIR}/imgui_draw.cpp
+        ${IMGUI_SRC_DIR}/imgui_tables.cpp
+        ${IMGUI_SRC_DIR}/imgui_widgets.cpp
+        ${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.cpp
+)
+target_include_directories(imgui PUBLIC ${IMGUI_SRC_DIR} ${IMGUI_SRC_DIR}/backends)
 target_link_libraries(imgui PRIVATE glfw)
 
 add_subdirectory(ImGuiFileDialog-0.6.6.1)
