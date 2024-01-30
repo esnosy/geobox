@@ -1,2 +1,6 @@
-/cmake-build-*/
+# IDEs and Editors
 /.idea/
+/.vscode/
+# Build folders
+/cmake-build-*/
+/build_*/
