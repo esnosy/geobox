@@ -44,7 +44,7 @@ private:
   std::vector<unsigned int> m_indices;
   std::vector<glm::vec3> m_vertex_normals;
 
-  float m_camera_fov_degrees = 45.0f;
+  float m_perspective_fov_degrees = 45.0f;
 
   Orbit_Camera m_camera = Orbit_Camera(DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH,
                                        DEFAULT_ORBIT_CAMERA_RADIUS, DEFAULT_ORBIT_CAMERA_ORIGIN);
