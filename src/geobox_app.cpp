@@ -270,11 +270,11 @@ void GeoBox_App::init_imgui() {
 }
 
 bool GeoBox_App::init_shaders() {
-  std::optional<std::string> default_vertex_shader_source = read_file("resources/shaders/default.vert");
+  std::optional<std::string> default_vertex_shader_source = read_file("resources/shaders/phong.vert");
   if (!default_vertex_shader_source.has_value()) {
     return false;
   }
-  std::optional<std::string> default_fragment_shader_source = read_file("resources/shaders/default.frag");
+  std::optional<std::string> default_fragment_shader_source = read_file("resources/shaders/phong.frag");
   if (!default_fragment_shader_source.has_value()) {
     return false;
   }
