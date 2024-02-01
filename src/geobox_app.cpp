@@ -443,8 +443,6 @@ void GeoBox_App::render() {
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
-
   // Thanks!: https://github.com/ocornut/imgui/issues/6307
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
@@ -456,6 +454,7 @@ void GeoBox_App::render() {
     ImGui::EndMainMenuBar();
   }
 
+  const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
   ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.x,
                                  main_viewport->WorkPos.y + INITIAL_IMGUI_FILE_DIALOG_WINDOW_OFFSET.y),
                           ImGuiCond_Once);
