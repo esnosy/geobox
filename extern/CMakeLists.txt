@@ -23,7 +23,7 @@ add_library(
 target_include_directories(imgui PUBLIC ${IMGUI_SRC_DIR} ${IMGUI_SRC_DIR}/backends)
 target_link_libraries(imgui PRIVATE glfw)
 
-add_subdirectory(ImGuiFileDialog-0.6.6.1)
+add_subdirectory(ImGuiFileDialog-iyad-5aca36b)
 target_link_libraries(ImGuiFileDialog PRIVATE imgui)
 
 set(GLM_BUILD_TESTS OFF)

@@ -447,7 +447,9 @@ void GeoBox_App::render() {
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
       if (ImGui::MenuItem(LOAD_STL_BUTTON_AND_DIALOG_TITLE)) {
-        ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_AND_DIALOG_TITLE, ".stl", ".");
+        IGFD::FileDialogConfig config;
+        config.path = ".";
+        ImGuiFileDialog::Instance()->OpenDialog(LOAD_STL_DIALOG_KEY, LOAD_STL_BUTTON_AND_DIALOG_TITLE, ".stl", config);
       }
       ImGui::EndMenu();
     }
