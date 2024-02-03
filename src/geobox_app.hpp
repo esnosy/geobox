@@ -23,6 +23,10 @@ public:
   GeoBox_App();
   void main_loop();
 
+  // Prevent copy
+  GeoBox_App(const GeoBox_App &) = delete;
+  GeoBox_App &operator=(const GeoBox_App &) = delete;
+
 private:
   GLFWwindow *m_window = nullptr;
 
