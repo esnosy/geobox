@@ -46,8 +46,8 @@ public:
   // Memory is freed in destructor,
   // avoid double free by disabling copy constructor and copy assignment operator,
   // also known as the "Rule of three"
-  BVH(BVH const &) = delete;
-  BVH &operator=(BVH const &) = delete;
+  BVH(const BVH &) = delete;
+  BVH &operator=(const BVH &) = delete;
 
   explicit BVH(const std::vector<glm::vec3> &points);
   ~BVH();
