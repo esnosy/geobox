@@ -49,7 +49,7 @@ public:
   BVH(const BVH &) = delete;
   BVH &operator=(const BVH &) = delete;
 
-  explicit BVH(const std::vector<glm::vec3> &points);
+  explicit BVH(const std::vector<Node::AABB> &bounding_boxes);
   ~BVH();
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;

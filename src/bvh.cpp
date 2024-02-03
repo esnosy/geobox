@@ -4,7 +4,8 @@
 #include <iostream>
 #include <limits> // for std::numeric_limits
 #include <stack>
-#include <tuple> // for std::tie
+#include <tuple>   // for std::tie
+#include <utility> // for std::as_const
 #include <vector>
 
 #include <glm/common.hpp> // for glm::min and glm::max
@@ -100,36 +101,43 @@ int main() {
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
-static BVH::Node::AABB calc_aabb_indirect(const std::vector<glm::vec3> &points, const unsigned int *first,
+static BVH::Node::AABB calc_aabb_indirect(const std::vector<BVH::Node::AABB> &bounding_boxes, const unsigned int *first,
                                           const unsigned int *last) {
-  if (points.empty()) {
-    return {};
-  }
-  BVH::Node::AABB aabb{.min = points[*first], .max = points[*first]};
+  BVH::Node::AABB aabb = bounding_boxes[*first];
   for (const unsigned int *i = first; i <= last; i++) {
-    aabb.min = glm::min(aabb.min, points[*i]);
+    aabb.min = glm::min(aabb.min, bounding_boxes[*i].min);
   }
   // Separate loop, so even without compiler optimization, similar instructions are in a loop
   for (const unsigned int *i = first; i <= last; i++) {
-    aabb.max = glm::max(aabb.max, points[*i]);
+    aabb.max = glm::max(aabb.max, bounding_boxes[*i].max);
   }
   return aabb;
 }
 
-BVH::BVH(const std::vector<glm::vec3> &points) {
-  if (points.empty()) {
-    std::cerr << "Empty points, aborting creation of BVH..." << std::endl;
+BVH::BVH(const std::vector<Node::AABB> &bounding_boxes) {
+  size_t num_primitives = bounding_boxes.size();
+  if (num_primitives == 0) {
+    std::cerr << "Zero number of primitives, aborting creation of BVH..." << std::endl;
     m_did_build_fail = true;
     return;
   }
 
+  // Calculate bounding box centers
+  std::vector<glm::vec3> bounding_box_centers;
+  bounding_box_centers.reserve(bounding_boxes.size());
+  for (const Node::AABB &aabb : bounding_boxes) {
+    // We multiply by 0.5f first (as opposed to multiplying after adding min and max) to reduce the values of min and
+    // max to support larger values of min and max
+    bounding_box_centers.emplace_back(aabb.min * 0.5f + aabb.max * 0.5f);
+  }
+
   // Pre-allocate nodes
-  m_pre_allocated_nodes = (Node *)malloc(sizeof(Node) * (2 * points.size() - 1));
+  m_pre_allocated_nodes = (Node *)malloc(sizeof(Node) * (2 * num_primitives - 1));
   m_current_free_node = m_pre_allocated_nodes;
 
   // Build initial indices array
-  m_primitive_indices = (unsigned int *)malloc(sizeof(unsigned int) * points.size());
-  for (unsigned int i = 0; i < points.size(); i++) {
+  m_primitive_indices = (unsigned int *)malloc(sizeof(unsigned int) * num_primitives);
+  for (unsigned int i = 0; i < num_primitives; i++) {
     m_primitive_indices[i] = i;
   }
 
@@ -137,7 +145,7 @@ BVH::BVH(const std::vector<glm::vec3> &points) {
   m_root = new_node();
   *m_root = {
       .first = m_primitive_indices,
-      .last = m_primitive_indices + points.size() - 1,
+      .last = m_primitive_indices + num_primitives - 1,
       .left = nullptr,
       .right = nullptr,
   };
@@ -151,7 +159,7 @@ BVH::BVH(const std::vector<glm::vec3> &points) {
     assert(node->first <= node->last);
 
     // Calculate AABB
-    node->aabb = calc_aabb_indirect(points, node->first, node->last);
+    node->aabb = calc_aabb_indirect(bounding_boxes, node->first, node->last);
 
     // Skip splitting of nodes that contain a single primitive
     if (node->first == node->last) {
@@ -159,17 +167,17 @@ BVH::BVH(const std::vector<glm::vec3> &points) {
     }
 
     // Calculate variance
-    auto num_node_vertices = static_cast<float>(node->num_primitives());
-    if (num_node_vertices > std::numeric_limits<float>::max()) {
-      std::cerr << "Too many points for variance calculation, aborting BVH build" << std::endl;
+    auto num_primitives_as_float = static_cast<float>(node->num_primitives());
+    if (num_primitives_as_float > std::numeric_limits<float>::max()) {
+      std::cerr << "Too many primitives for variance calculation, aborting BVH build" << std::endl;
       m_did_build_fail = true;
       return;
     }
     glm::vec3 mean_of_squares(0);
     glm::vec3 mean(0);
     for (const unsigned int *i = node->first; i <= node->last; i++) {
-      const glm::vec3 &v = points[*i];
-      glm::vec3 tmp = v / num_node_vertices;
+      const glm::vec3 &v = bounding_box_centers[*i];
+      glm::vec3 tmp = v / num_primitives_as_float;
       mean += tmp;
       mean_of_squares += v * tmp;
     }
@@ -189,9 +197,10 @@ BVH::BVH(const std::vector<glm::vec3> &points) {
     // note that std::partition input range is not inclusive,
     // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
     // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
-    auto *second_group_first = std::partition(node->first, node->last + 1, [&points, axis, split_pos](unsigned int i) {
-      return points[i][axis] < split_pos;
-    });
+    auto *second_group_first =
+        std::partition(node->first, node->last + 1,
+                       [&bounding_box_centers_const = std::as_const(bounding_box_centers), axis,
+                        split_pos](unsigned int i) { return bounding_box_centers_const[i][axis] < split_pos; });
 
     // Abort current node if partitioning fails
     if (second_group_first == node->first || second_group_first == (node->last + 1)) {

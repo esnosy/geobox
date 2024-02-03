@@ -1,9 +1,11 @@
 #pragma once
 
-#include <memory> // for std::shared_pointer
+#include <memory> // for std::shared_pointer and std::unique_ptr
 #include <vector>
 
 #include <glm/glm.hpp>
+
+#include "bvh.hpp"
 
 class Object {
 private:
@@ -23,6 +25,8 @@ private:
 
   glm::mat4 m_model;
   glm::mat3 m_normal;
+
+  std::unique_ptr<BVH> m_triangles_bvh;
 
   // Private default constructor to only allow creating objects through public API
   Object() = default;

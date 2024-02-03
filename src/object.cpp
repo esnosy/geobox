@@ -40,7 +40,16 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
   result->m_model = model;
   result->m_normal = glm::transpose(glm::inverse(model));
 
-  BVH bvh(triangle_mesh_vertices);
+  std::vector<BVH::Node::AABB> vertices_as_bounding_boxes;
+  vertices_as_bounding_boxes.reserve(triangle_mesh_vertices.size());
+  for (const glm::vec3 &v : triangle_mesh_vertices) {
+    BVH::Node::AABB aabb;
+    aabb.min = v;
+    aabb.max = v;
+    vertices_as_bounding_boxes.push_back(aabb);
+  }
+
+  BVH bvh(vertices_as_bounding_boxes);
   if (bvh.did_build_fail()) {
     std::cerr << "Failed to build BVH" << std::endl;
     return {};
@@ -166,6 +175,19 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
   result->m_vertex_positions_buffer_object = vertex_positions_buffer_object;
   result->m_vertex_normals_buffer_object = vertex_normals_buffer_object;
   result->m_EBO = EBO;
+
+  // Build BVH for triangles
+  std::vector<BVH::Node::AABB> triangle_bounding_boxes;
+  for (unsigned int i = 0; i < indices.size(); i += 3) {
+    const glm::vec3 &a = unique_vertices[indices[i + 0]];
+    const glm::vec3 &b = unique_vertices[indices[i + 1]];
+    const glm::vec3 &c = unique_vertices[indices[i + 2]];
+    BVH::Node::AABB aabb;
+    aabb.min = glm::min(a, glm::min(b, c));
+    aabb.max = glm::max(a, glm::max(b, c));
+    triangle_bounding_boxes.push_back(aabb);
+  }
+  result->m_triangles_bvh = std::make_unique<BVH>(triangle_bounding_boxes);
 
   return result;
 }
