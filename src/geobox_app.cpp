@@ -213,9 +213,6 @@ void GeoBox_App::init_glfw() {
   // https://stackoverflow.com/a/28660673/8094047
   glfwSetWindowUserPointer(m_window, this);
 
-  // Swap interval of 1: reduces tearing with minimal input latency
-  glfwSwapInterval(1);
-
   // Raw mouse motion, from GLFW documentation:
   // "Raw mouse motion is closer to the actual motion of the mouse across a surface. It is not affected by the scaling
   // and acceleration applied to the motion of the desktop cursor. That processing is suitable for a cursor while raw
@@ -312,13 +309,6 @@ bool GeoBox_App::init_shaders() {
   return true;
 }
 
-void window_refresh_callback(GLFWwindow *window) {
-  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
-  app->render();
-  glfwSwapBuffers(window);
-  glFinish();
-}
-
 void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int height) {
   glViewport(0, 0, width, height);
 }
@@ -326,7 +316,6 @@ void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int hei
 void GeoBox_App::init_glfw_callbacks() {
   // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
   glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
-  glfwSetWindowRefreshCallback(m_window, (GLFWwindowrefreshfun)window_refresh_callback);
 }
 
 void GeoBox_App::process_input() {
