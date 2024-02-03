@@ -24,6 +24,8 @@ target_sources(geobox PRIVATE
         orbit_camera.hpp
         common.cpp
         common.hpp
+        object.cpp
+        object.hpp
 )
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)

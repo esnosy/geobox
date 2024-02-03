@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "object.hpp"
 #include "orbit_camera.hpp"
 
 constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
@@ -27,22 +28,7 @@ private:
 
   unsigned int m_default_shader_program = 0;
 
-  // TODO: support multiple objects once we settle on a design
-  bool m_is_object_loaded = false;
-
-  // GPU Mesh
-  unsigned int m_VAO = 0;
-  // We only need VAO for drawing, but we also store VBO and EBO to update them and free them later
-  // VAO references VBO and EBO so updates will be reflected when VAO is bound again
-  unsigned int m_vertex_positions_buffer_object = 0;
-  unsigned int m_vertex_normals_buffer_object = 0;
-  unsigned int m_EBO = 0;
-  int m_num_indices = 0;
-
-  // CPU Mesh
-  std::vector<glm::vec3> m_vertices;
-  std::vector<unsigned int> m_indices;
-  std::vector<glm::vec3> m_vertex_normals;
+  std::vector<std::shared_ptr<Object>> m_objects;
 
   float m_perspective_fov_degrees = 45.0f;
 
