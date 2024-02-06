@@ -49,7 +49,7 @@ constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 constexpr int NUM_ANTIALIASING_SAMPLES = 8;
 
 static std::optional<std::string> read_file_as_string(const std::string &file_path) {
-  std::ifstream ifs(file_path);
+  std::ifstream ifs(file_path, std::ifstream::binary);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open file: " << file_path << std::endl;
     return {};
