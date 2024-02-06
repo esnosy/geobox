@@ -195,7 +195,7 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<Node::AABB> &bou
     }
     float split_pos = mean[axis];
 
-    // Partition vertices
+    // Partition primitives
     // note that std::partition input range is not inclusive,
     // so if we need to include the "last" value in partitioning, we pass last + 1 to std::partition as the "last"
     // parameter: https://en.cppreference.com/mwiki/index.php?title=cpp/algorithm/partition&oldid=150246
