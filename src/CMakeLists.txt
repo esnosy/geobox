@@ -5,6 +5,14 @@ add_executable(geobox)
 target_compile_features(geobox PRIVATE cxx_std_20)
 set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 
+if(MSVC)
+    target_compile_options(geobox PRIVATE
+        /we4716 # Equivalent to Clang/GCC -Werror=return-type # TODO: confirm
+    )
+else()
+    target_compile_options(geobox PRIVATE -Werror=return-type)
+endif()
+
 option(ENABLE_SUPERLUMINAL_PERF_API "" NO)
 if (${ENABLE_SUPERLUMINAL_PERF_API})
     set(CMAKE_MODULE_PATH "C:\\Program Files\\Superluminal\\Performance\\API" ${CMAKE_MODULE_PATH})
