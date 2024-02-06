@@ -48,7 +48,7 @@ constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 
 constexpr int NUM_ANTIALIASING_SAMPLES = 8;
 
-static std::optional<std::string> read_file(const std::string &file_path) {
+static std::optional<std::string> read_file_as_string(const std::string &file_path) {
   std::ifstream ifs(file_path);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open file: " << file_path << std::endl;
@@ -169,11 +169,11 @@ void GeoBox_App::init_imgui() {
 }
 
 bool GeoBox_App::init_shaders() {
-  std::optional<std::string> default_vertex_shader_source = read_file("resources/shaders/phong.vert");
+  std::optional<std::string> default_vertex_shader_source = read_file_as_string("resources/shaders/phong.vert");
   if (!default_vertex_shader_source.has_value()) {
     return false;
   }
-  std::optional<std::string> default_fragment_shader_source = read_file("resources/shaders/phong.frag");
+  std::optional<std::string> default_fragment_shader_source = read_file_as_string("resources/shaders/phong.frag");
   if (!default_fragment_shader_source.has_value()) {
     return false;
   }
