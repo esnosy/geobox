@@ -188,6 +188,9 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
     triangle_bounding_boxes.push_back(aabb);
   }
   result->m_triangles_bvh = std::make_unique<BVH>(triangle_bounding_boxes);
+  if (result->m_triangles_bvh->did_build_fail()) {
+    return {};
+  }
 
   return result;
 }
