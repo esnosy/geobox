@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(geobox_extern_cmake_project)
 
-add_subdirectory(glad)
+set(GLAD_SRC_DIR glad)
+add_library(glad ${GLAD_SRC_DIR}/src/glad.c)
+target_include_directories(glad PUBLIC ${GLAD_SRC_DIR}/include)
 
 set(GLFW_BUILD_EXAMPLES OFF)
 set(GLFW_BUILD_TESTS OFF)
