@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <utility> // for std::as_const
 
 #include <glad/glad.h>
 #include <glm/gtx/norm.hpp>
