@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -34,28 +35,29 @@ private:
   Node *m_current_free_node = nullptr;
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
-  bool m_did_build_fail = false;
   Node *new_node();
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
   void foreach_leaf_node(const std::function<void(const Node *)> &callback,
                          const std::function<bool(Node::AABB const &aabb)> &aabb_filter) const;
 
+  // Private default constructor to only allow creating objects through public API
+  BVH() = default;
+
 public:
-  BVH() = delete;
   // Memory is freed in destructor,
   // avoid double free by disabling copy constructor and copy assignment operator,
   // also known as the "Rule of three"
   BVH(const BVH &) = delete;
   BVH &operator=(const BVH &) = delete;
 
-  explicit BVH(const std::vector<Node::AABB> &bounding_boxes);
+  // We use shared pointer to still allow using the object easily in multiple places and still avoid double free and
+  // prevent use after free
+  [[nodiscard]] static std::shared_ptr<BVH> from_bounding_boxes(const std::vector<Node::AABB> &bounding_boxes);
   ~BVH();
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;
   [[nodiscard]] size_t count_primitives() const;
-
-  [[nodiscard]] bool did_build_fail() const;
 
   void foreach_primitive(const std::function<void(unsigned int)> &callback,
                          const std::function<bool(Node::AABB const &aabb)> &aabb_filter,

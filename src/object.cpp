@@ -50,14 +50,14 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
     vertices_as_bounding_boxes.push_back(aabb);
   }
 
-  BVH bvh(vertices_as_bounding_boxes);
-  if (bvh.did_build_fail()) {
+  std::shared_ptr<BVH> bvh = BVH::from_bounding_boxes(vertices_as_bounding_boxes);
+  if (!bvh) {
     std::cerr << "Failed to build BVH" << std::endl;
     return {};
   }
-  assert(bvh.count_primitives() == triangle_mesh_vertices.size());
-  std::cout << "Num nodes = " << bvh.count_nodes() << std::endl;
-  std::cout << "Max node size = " << bvh.calc_max_leaf_size() << std::endl;
+  assert(bvh->count_primitives() == triangle_mesh_vertices.size());
+  std::cout << "Num nodes = " << bvh->count_nodes() << std::endl;
+  std::cout << "Max node size = " << bvh->calc_max_leaf_size() << std::endl;
 
   std::vector<unsigned int> indices(triangle_mesh_vertices.size());
   std::vector<bool> is_remapped_vec(triangle_mesh_vertices.size(), false);
@@ -88,7 +88,7 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
                              &unique_vertex](unsigned int potential_duplicate_vertex_index) {
       return glm::distance2(unique_vertex, const_vertices[potential_duplicate_vertex_index]) <= (range * range);
     };
-    bvh.foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
+    bvh->foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
 
     final_unique_vertex_index++;
     unique_vertices.push_back(unique_vertex);
@@ -188,8 +188,8 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
     aabb.max = glm::max(a, glm::max(b, c));
     triangle_bounding_boxes.push_back(aabb);
   }
-  result->m_triangles_bvh = std::make_unique<BVH>(triangle_bounding_boxes);
-  if (result->m_triangles_bvh->did_build_fail()) {
+  result->m_triangles_bvh = BVH::from_bounding_boxes(triangle_bounding_boxes);
+  if (!(result->m_triangles_bvh)) {
     return {};
   }
 
