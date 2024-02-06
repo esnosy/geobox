@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory> // for std::shared_pointer and std::unique_ptr
+#include <memory> // for std::shared_ptr and std::unique_ptr
 #include <vector>
 
 #include <glm/glm.hpp>
