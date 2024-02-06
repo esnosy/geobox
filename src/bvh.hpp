@@ -38,7 +38,7 @@ private:
   Node *new_node();
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
-  void foreach_node_leaf(const std::function<void(const Node *)> &callback,
+  void foreach_leaf_node(const std::function<void(const Node *)> &callback,
                          const std::function<bool(Node::AABB const &aabb)> &aabb_filter) const;
 
 public:

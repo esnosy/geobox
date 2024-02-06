@@ -239,7 +239,7 @@ size_t BVH::count_nodes() const {
 
 size_t BVH::calc_max_leaf_size() const {
   size_t max_node_size = 0;
-  foreach_node_leaf(
+  foreach_leaf_node(
       [&max_node_size](const Node *node) { max_node_size = std::max(max_node_size, node->num_primitives()); },
       [](Node::AABB const &) { return true; });
   return max_node_size;
@@ -247,7 +247,7 @@ size_t BVH::calc_max_leaf_size() const {
 
 size_t BVH::count_primitives() const {
   size_t num_primitives = 0;
-  foreach_node_leaf([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
+  foreach_leaf_node([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
                     [](Node::AABB const &) { return true; });
   return num_primitives;
 }
@@ -272,7 +272,7 @@ void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) con
   }
 }
 
-void BVH::foreach_node_leaf(const std::function<void(const Node *)> &callback,
+void BVH::foreach_leaf_node(const std::function<void(const Node *)> &callback,
                             const std::function<bool(BVH::Node::AABB const &aabb)> &aabb_filter) const {
   foreach_node(
       [&callback](const Node *node) {
@@ -285,7 +285,7 @@ void BVH::foreach_node_leaf(const std::function<void(const Node *)> &callback,
 void BVH::foreach_primitive(const std::function<void(unsigned int)> &callback,
                             const std::function<bool(const BVH::Node::AABB &)> &aabb_filter,
                             const std::function<bool(unsigned int)> &primitive_filter) const {
-  foreach_node_leaf(
+  foreach_leaf_node(
       [&callback, &primitive_filter](const Node *node) {
         for (unsigned int const *i = node->first; i <= node->last; i++) {
           if (primitive_filter(*i))
