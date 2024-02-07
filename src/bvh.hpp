@@ -9,9 +9,8 @@
 #include "aabb.hpp"
 
 class BVH {
-public:
+private:
   struct Node {
-
     AABB aabb;
     unsigned int *first;
     unsigned int *last;
@@ -26,7 +25,6 @@ public:
     }
   };
 
-private:
   unsigned int *m_primitive_indices = nullptr;
   Node *m_current_free_node = nullptr;
   Node *m_pre_allocated_nodes = nullptr;
