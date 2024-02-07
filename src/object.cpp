@@ -10,11 +10,11 @@
 #include "object.hpp"
 #include "triangle.hpp"
 
-glm::vec3 closest_point_on_aabb(const glm::vec3 &point, AABB const &aabb) {
+glm::vec3 closest_point_on_aabb(const glm::vec3 &point, const AABB &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
-float point_aabb_distance_squared(const glm::vec3 &point, AABB const &aabb) {
+float point_aabb_distance_squared(const glm::vec3 &point, const AABB &aabb) {
   return glm::distance2(point, closest_point_on_aabb(point, aabb));
 }
 
@@ -23,7 +23,7 @@ struct Sphere {
   float radius;
 };
 
-bool sphere_aabb_intersection(const Sphere &sphere, AABB const &aabb) {
+bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
@@ -91,7 +91,7 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
         is_remapped_vec[duplicate_vertex_index] = true;
       }
     };
-    auto aabb_filter = [&const_sphere = std::as_const(sphere)](AABB const &aabb) {
+    auto aabb_filter = [&const_sphere = std::as_const(sphere)](const AABB &aabb) {
       return sphere_aabb_intersection(const_sphere, aabb);
     };
     auto primitive_filter = [&unique_vertex, &get_ith_vertex](unsigned int potential_duplicate_vertex_index) {

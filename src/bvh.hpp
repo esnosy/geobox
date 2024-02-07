@@ -33,7 +33,7 @@ private:
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
   void foreach_leaf_node(const std::function<void(const Node *)> &callback,
-                         const std::function<bool(AABB const &aabb)> &aabb_filter) const;
+                         const std::function<bool(const AABB &aabb)> &aabb_filter) const;
 
   // Private default constructor to only allow creating objects through public API
   BVH() = default;
@@ -54,6 +54,6 @@ public:
   [[nodiscard]] size_t count_primitives() const;
 
   void foreach_primitive(const std::function<void(unsigned int)> &callback,
-                         const std::function<bool(AABB const &aabb)> &aabb_filter,
+                         const std::function<bool(const AABB &aabb)> &aabb_filter,
                          const std::function<bool(unsigned int)> &primitive_filter) const;
 };

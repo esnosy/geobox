@@ -26,7 +26,7 @@ float max_component(const glm::vec3 &v) { return std::max(v.x, std::min(v.y, v.z
 
 bool is_not_all_zeros(const glm::vec3 &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
 
-static float ray_aabb_intersection(const Ray &ray, AABB const &aabb) {
+static float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   assert(is_not_all_zeros(ray.direction));
   // ray-aabb intersection:
   // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
@@ -103,7 +103,7 @@ int main() {
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
 static AABB calc_aabb_indirect(const std::vector<AABB> &bounding_boxes, const unsigned int *first,
-                                          const unsigned int *last) {
+                               const unsigned int *last) {
   AABB aabb = bounding_boxes[*first];
   for (const unsigned int *i = first; i <= last; i++) {
     aabb.min = glm::min(aabb.min, bounding_boxes[*i].min);
@@ -237,7 +237,7 @@ BVH::~BVH() {
 
 size_t BVH::count_nodes() const {
   size_t num_nodes = 0;
-  foreach_node([&num_nodes](const Node *) { num_nodes++; }, [](AABB const &) { return true; });
+  foreach_node([&num_nodes](const Node *) { num_nodes++; }, [](const AABB &) { return true; });
   return num_nodes;
 }
 
@@ -245,14 +245,14 @@ size_t BVH::calc_max_leaf_size() const {
   size_t max_node_size = 0;
   foreach_leaf_node(
       [&max_node_size](const Node *node) { max_node_size = std::max(max_node_size, node->num_primitives()); },
-      [](AABB const &) { return true; });
+      [](const AABB &) { return true; });
   return max_node_size;
 }
 
 size_t BVH::count_primitives() const {
   size_t num_primitives = 0;
   foreach_leaf_node([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
-                    [](AABB const &) { return true; });
+                    [](const AABB &) { return true; });
   return num_primitives;
 }
 
@@ -277,7 +277,7 @@ void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) con
 }
 
 void BVH::foreach_leaf_node(const std::function<void(const Node *)> &callback,
-                            const std::function<bool(AABB const &aabb)> &aabb_filter) const {
+                            const std::function<bool(const AABB &aabb)> &aabb_filter) const {
   foreach_node(
       [&callback](const Node *node) {
         if (node->is_leaf())
