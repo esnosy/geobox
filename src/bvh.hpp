@@ -6,15 +6,11 @@
 #include <optional>
 #include <vector>
 
-#include <glm/vec3.hpp>
+#include "aabb.hpp"
 
 class BVH {
 public:
   struct Node {
-    struct AABB {
-      glm::vec3 min;
-      glm::vec3 max;
-    };
 
     AABB aabb;
     unsigned int *first;
@@ -39,7 +35,7 @@ private:
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
   void foreach_leaf_node(const std::function<void(const Node *)> &callback,
-                         const std::function<bool(Node::AABB const &aabb)> &aabb_filter) const;
+                         const std::function<bool(AABB const &aabb)> &aabb_filter) const;
 
   // Private default constructor to only allow creating objects through public API
   BVH() = default;
@@ -53,13 +49,13 @@ public:
 
   // We use shared pointer to still allow using the object easily in multiple places and still avoid double free and
   // prevent use after free
-  [[nodiscard]] static std::shared_ptr<BVH> from_bounding_boxes(const std::vector<Node::AABB> &bounding_boxes);
+  [[nodiscard]] static std::shared_ptr<BVH> from_bounding_boxes(const std::vector<AABB> &bounding_boxes);
   ~BVH();
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;
   [[nodiscard]] size_t count_primitives() const;
 
   void foreach_primitive(const std::function<void(unsigned int)> &callback,
-                         const std::function<bool(Node::AABB const &aabb)> &aabb_filter,
+                         const std::function<bool(AABB const &aabb)> &aabb_filter,
                          const std::function<bool(unsigned int)> &primitive_filter) const;
 };

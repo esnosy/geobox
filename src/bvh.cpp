@@ -26,7 +26,7 @@ float max_component(const glm::vec3 &v) { return std::max(v.x, std::min(v.y, v.z
 
 bool is_not_all_zeros(const glm::vec3 &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
 
-static float ray_aabb_intersection(const Ray &ray, BVH::Node::AABB const &aabb) {
+static float ray_aabb_intersection(const Ray &ray, AABB const &aabb) {
   assert(is_not_all_zeros(ray.direction));
   // ray-aabb intersection:
   // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
@@ -47,11 +47,11 @@ static float ray_aabb_intersection(const Ray &ray, BVH::Node::AABB const &aabb) 
 
 #ifdef TEST_RAY_AABB_INTERSECTION
 int main() {
-  BVH::Node::AABB aabb{.min = glm::vec3(-1), .max = glm::vec3(1)};
+  AABB aabb{.min = glm::vec3(-1), .max = glm::vec3(1)};
 
   struct Test_Case {
     Ray ray;
-    BVH::Node::AABB aabb;
+    AABB aabb;
     bool does_intersect;
   };
 
@@ -102,9 +102,9 @@ int main() {
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
-static BVH::Node::AABB calc_aabb_indirect(const std::vector<BVH::Node::AABB> &bounding_boxes, const unsigned int *first,
+static AABB calc_aabb_indirect(const std::vector<AABB> &bounding_boxes, const unsigned int *first,
                                           const unsigned int *last) {
-  BVH::Node::AABB aabb = bounding_boxes[*first];
+  AABB aabb = bounding_boxes[*first];
   for (const unsigned int *i = first; i <= last; i++) {
     aabb.min = glm::min(aabb.min, bounding_boxes[*i].min);
   }
@@ -115,7 +115,7 @@ static BVH::Node::AABB calc_aabb_indirect(const std::vector<BVH::Node::AABB> &bo
   return aabb;
 }
 
-std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<Node::AABB> &bounding_boxes) {
+std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_boxes) {
   size_t num_primitives = bounding_boxes.size();
   if (num_primitives == 0) {
     std::cerr << "Zero number of primitives, aborting creation of BVH..." << std::endl;
@@ -125,7 +125,7 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<Node::AABB> &bou
   // Calculate bounding box centers
   std::vector<glm::vec3> bounding_box_centers;
   bounding_box_centers.reserve(bounding_boxes.size());
-  for (const Node::AABB &aabb : bounding_boxes) {
+  for (const AABB &aabb : bounding_boxes) {
     // We multiply by 0.5f first (as opposed to multiplying after adding min and max) to reduce the values of min and
     // max to support larger values of min and max
     bounding_box_centers.emplace_back(aabb.min * 0.5f + aabb.max * 0.5f);
@@ -237,7 +237,7 @@ BVH::~BVH() {
 
 size_t BVH::count_nodes() const {
   size_t num_nodes = 0;
-  foreach_node([&num_nodes](const Node *) { num_nodes++; }, [](Node::AABB const &) { return true; });
+  foreach_node([&num_nodes](const Node *) { num_nodes++; }, [](AABB const &) { return true; });
   return num_nodes;
 }
 
@@ -245,14 +245,14 @@ size_t BVH::calc_max_leaf_size() const {
   size_t max_node_size = 0;
   foreach_leaf_node(
       [&max_node_size](const Node *node) { max_node_size = std::max(max_node_size, node->num_primitives()); },
-      [](Node::AABB const &) { return true; });
+      [](AABB const &) { return true; });
   return max_node_size;
 }
 
 size_t BVH::count_primitives() const {
   size_t num_primitives = 0;
   foreach_leaf_node([&num_primitives](const Node *node) { num_primitives += node->num_primitives(); },
-                    [](Node::AABB const &) { return true; });
+                    [](AABB const &) { return true; });
   return num_primitives;
 }
 
@@ -277,7 +277,7 @@ void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) con
 }
 
 void BVH::foreach_leaf_node(const std::function<void(const Node *)> &callback,
-                            const std::function<bool(BVH::Node::AABB const &aabb)> &aabb_filter) const {
+                            const std::function<bool(AABB const &aabb)> &aabb_filter) const {
   foreach_node(
       [&callback](const Node *node) {
         if (node->is_leaf())
@@ -287,7 +287,7 @@ void BVH::foreach_leaf_node(const std::function<void(const Node *)> &callback,
 }
 
 void BVH::foreach_primitive(const std::function<void(unsigned int)> &callback,
-                            const std::function<bool(const BVH::Node::AABB &)> &aabb_filter,
+                            const std::function<bool(const AABB &)> &aabb_filter,
                             const std::function<bool(unsigned int)> &primitive_filter) const {
   foreach_leaf_node(
       [&callback, &primitive_filter](const Node *node) {

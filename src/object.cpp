@@ -10,11 +10,11 @@
 #include "object.hpp"
 #include "triangle.hpp"
 
-glm::vec3 closest_point_on_aabb(const glm::vec3 &point, BVH::Node::AABB const &aabb) {
+glm::vec3 closest_point_on_aabb(const glm::vec3 &point, AABB const &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
-float point_aabb_distance_squared(const glm::vec3 &point, BVH::Node::AABB const &aabb) {
+float point_aabb_distance_squared(const glm::vec3 &point, AABB const &aabb) {
   return glm::distance2(point, closest_point_on_aabb(point, aabb));
 }
 
@@ -23,7 +23,7 @@ struct Sphere {
   float radius;
 };
 
-bool sphere_aabb_intersection(const Sphere &sphere, BVH::Node::AABB const &aabb) {
+bool sphere_aabb_intersection(const Sphere &sphere, AABB const &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
@@ -40,11 +40,11 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
 
   size_t num_vertices = triangles.size() * 3;
 
-  std::vector<BVH::Node::AABB> vertices_as_bounding_boxes;
+  std::vector<AABB> vertices_as_bounding_boxes;
   vertices_as_bounding_boxes.reserve(num_vertices);
   for (const Triangle &triangle : triangles) {
     for (const glm::vec3 &v : triangle.vertices) {
-      BVH::Node::AABB aabb;
+      AABB aabb;
       aabb.min = v;
       aabb.max = v;
       vertices_as_bounding_boxes.push_back(aabb);
@@ -91,7 +91,7 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
         is_remapped_vec[duplicate_vertex_index] = true;
       }
     };
-    auto aabb_filter = [&const_sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
+    auto aabb_filter = [&const_sphere = std::as_const(sphere)](AABB const &aabb) {
       return sphere_aabb_intersection(const_sphere, aabb);
     };
     auto primitive_filter = [&unique_vertex, &get_ith_vertex](unsigned int potential_duplicate_vertex_index) {
@@ -187,12 +187,12 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
   result->m_EBO = EBO;
 
   // Build BVH for triangles
-  std::vector<BVH::Node::AABB> triangle_bounding_boxes;
+  std::vector<AABB> triangle_bounding_boxes;
   for (unsigned int i = 0; i < indices.size(); i += 3) {
     const glm::vec3 &a = unique_vertices[indices[i + 0]];
     const glm::vec3 &b = unique_vertices[indices[i + 1]];
     const glm::vec3 &c = unique_vertices[indices[i + 2]];
-    BVH::Node::AABB aabb;
+    AABB aabb;
     aabb.min = glm::min(a, glm::min(b, c));
     aabb.max = glm::max(a, glm::max(b, c));
     triangle_bounding_boxes.push_back(aabb);
