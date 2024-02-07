@@ -25,6 +25,7 @@
 #include "bvh.hpp"
 #include "geobox_app.hpp"
 #include "read_stl.hpp"
+#include "triangle.hpp"
 
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
 #include <Superluminal/PerformanceAPI.h>
@@ -376,17 +377,17 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   PerformanceAPI_BeginEvent(__FUNCTION__, nullptr, PERFORMANCEAPI_DEFAULT_COLOR);
   PERFORMANCEAPI_INSTRUMENT_FUNCTION();
 #endif
-  std::optional<std::vector<glm::vec3>> vertices = read_stl_mesh_file(file_path);
-  if (!vertices.has_value()) {
+  std::optional<std::vector<Triangle>> triangles = read_stl_mesh_file(file_path);
+  if (!triangles.has_value()) {
     std::cerr << "Failed to import .stl mesh file: " << file_path << std::endl;
     return;
   }
-  if (vertices->empty()) {
+  if (triangles->empty()) {
     std::cerr << "Empty mesh: " << file_path << std::endl;
     return;
   }
 
-  std::shared_ptr<Object> object = Object::from_triangles(vertices.value(), glm::mat4(1.0f));
+  std::shared_ptr<Object> object = Object::from_triangles(triangles.value(), glm::mat4(1.0f));
   if (!object) {
     std::cerr << "Failed to create object" << std::endl;
     return;

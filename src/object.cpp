@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdlib> // for std::div
 #include <iostream>
 #include <utility> // for std::as_const
 
@@ -7,6 +8,7 @@
 
 #include "bvh.hpp"
 #include "object.hpp"
+#include "triangle.hpp"
 
 glm::vec3 closest_point_on_aabb(const glm::vec3 &point, BVH::Node::AABB const &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
@@ -25,14 +27,9 @@ bool sphere_aabb_intersection(const Sphere &sphere, BVH::Node::AABB const &aabb)
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &triangle_mesh_vertices,
-                                               const glm::mat4 &model) {
-  if (triangle_mesh_vertices.empty()) {
+std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &triangles, const glm::mat4 &model) {
+  if (triangles.empty()) {
     std::cerr << "Empty mesh" << std::endl;
-    return {};
-  }
-  if ((triangle_mesh_vertices.size() % 3) != 0) {
-    std::cerr << "Vertices do not make up a whole number of triangles" << std::endl;
     return {};
   }
 
@@ -41,13 +38,17 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
   result->m_model = model;
   result->m_normal = glm::transpose(glm::inverse(model));
 
+  size_t num_vertices = triangles.size() * 3;
+
   std::vector<BVH::Node::AABB> vertices_as_bounding_boxes;
-  vertices_as_bounding_boxes.reserve(triangle_mesh_vertices.size());
-  for (const glm::vec3 &v : triangle_mesh_vertices) {
-    BVH::Node::AABB aabb;
-    aabb.min = v;
-    aabb.max = v;
-    vertices_as_bounding_boxes.push_back(aabb);
+  vertices_as_bounding_boxes.reserve(num_vertices);
+  for (const Triangle &triangle : triangles) {
+    for (const glm::vec3 &v : triangle.vertices) {
+      BVH::Node::AABB aabb;
+      aabb.min = v;
+      aabb.max = v;
+      vertices_as_bounding_boxes.push_back(aabb);
+    }
   }
 
   std::shared_ptr<BVH> bvh = BVH::from_bounding_boxes(vertices_as_bounding_boxes);
@@ -55,22 +56,31 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
     std::cerr << "Failed to build BVH" << std::endl;
     return {};
   }
-  assert(bvh->count_primitives() == triangle_mesh_vertices.size());
+  assert(bvh->count_primitives() == num_vertices);
   std::cout << "Num nodes = " << bvh->count_nodes() << std::endl;
   std::cout << "Max node size = " << bvh->calc_max_leaf_size() << std::endl;
 
-  std::vector<unsigned int> indices(triangle_mesh_vertices.size());
-  std::vector<bool> is_remapped_vec(triangle_mesh_vertices.size(), false);
+  std::vector<unsigned int> indices(num_vertices);
+  std::vector<bool> is_remapped_vec(num_vertices, false);
   std::vector<glm::vec3> unique_vertices;
-  unique_vertices.reserve(triangle_mesh_vertices.size());
+  unique_vertices.reserve(num_vertices);
+
+  auto get_ith_vertex = [&triangles](unsigned int i) -> const glm::vec3 & {
+    auto div = std::div(i, 3);
+    size_t triangle_index = div.quot;
+    assert(triangle_index >= 0 && triangle_index < triangles.size());
+    size_t vertex_index_in_triangle = div.rem;
+    assert(vertex_index_in_triangle >= 0 && vertex_index_in_triangle <= 2);
+    return triangles[triangle_index].vertices[vertex_index_in_triangle];
+  };
 
   unsigned int final_unique_vertex_index = 0;
-  for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < triangle_mesh_vertices.size();
+  for (unsigned int original_unique_vertex_index = 0; original_unique_vertex_index < num_vertices;
        original_unique_vertex_index++) {
     // Skip already remapped vertex
     if (is_remapped_vec[original_unique_vertex_index])
       continue;
-    const glm::vec3 &unique_vertex = triangle_mesh_vertices[original_unique_vertex_index];
+    const glm::vec3 &unique_vertex = get_ith_vertex(original_unique_vertex_index);
     constexpr float range = 0.0001f;
     Sphere sphere{.center = unique_vertex, .radius = range};
 
@@ -84,9 +94,8 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<glm::vec3> &tri
     auto aabb_filter = [&const_sphere = std::as_const(sphere)](BVH::Node::AABB const &aabb) {
       return sphere_aabb_intersection(const_sphere, aabb);
     };
-    auto primitive_filter = [&const_vertices = std::as_const(triangle_mesh_vertices),
-                             &unique_vertex](unsigned int potential_duplicate_vertex_index) {
-      return glm::distance2(unique_vertex, const_vertices[potential_duplicate_vertex_index]) <= (range * range);
+    auto primitive_filter = [&unique_vertex, &get_ith_vertex](unsigned int potential_duplicate_vertex_index) {
+      return glm::distance2(unique_vertex, get_ith_vertex(potential_duplicate_vertex_index)) <= (range * range);
     };
     bvh->foreach_primitive(duplicate_vertex_callback, aabb_filter, primitive_filter);
 

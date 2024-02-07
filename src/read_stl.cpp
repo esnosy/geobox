@@ -4,9 +4,10 @@
 #include <iostream> // for std::cerr, std::endl, etc...
 #include <optional>
 #include <string>
+#include <utility> // for std::as_const
 #include <vector>
 
-#include <glm/vec3.hpp>
+#include "triangle.hpp"
 
 constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 
@@ -24,22 +25,22 @@ static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles) {
   return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(float[4][3]) + sizeof(uint16_t));
 }
 
-static std::vector<glm::vec3> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles) {
-  std::vector<glm::vec3> vertices;
-  vertices.reserve(num_triangles * 3);
+static std::vector<Triangle> read_stl_mesh_file_binary(std::ifstream &ifs, uint32_t num_triangles) {
+  std::vector<Triangle> triangles;
   for (uint32_t i = 0; i < num_triangles; i++) {
     ifs.seekg(sizeof(glm::vec3), std::ifstream::cur); // Skip normals
-    for (int j = 0; j < 3; j++) {
-      ifs.read((char *)&vertices.emplace_back(), sizeof(glm::vec3));
+    // Yes we can do the reading differently but this way is nice and explicit for now
+    for (glm::vec3 &vertex : triangles.emplace_back().vertices) {
+      ifs.read((char *)&vertex, sizeof(glm::vec3));
     }
     // Skip "attribute byte count"
     ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
   }
-  return vertices;
+  return triangles;
 }
 
-static std::vector<glm::vec3> read_stl_mesh_file_ascii(std::ifstream &ifs) {
-  std::vector<glm::vec3> vertices;
+static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs) {
+  std::vector<Triangle> triangles;
   std::string token;
   while (ifs.good()) {
     ifs >> token;
@@ -48,19 +49,18 @@ static std::vector<glm::vec3> read_stl_mesh_file_ascii(std::ifstream &ifs) {
       ifs >> token >> token >> token; // Skip normal
       ifs >> token;                   // expecting "outer"
       ifs >> token;                   // expecting "loop"
-      for (int i = 0; i < 3; i++) {
+      for (glm::vec3 &vertex : triangles.emplace_back().vertices) {
         ifs >> token; // expecting "vertex"
-        glm::vec3 &vertex = vertices.emplace_back();
         ifs >> vertex.x >> vertex.y >> vertex.z;
       }
       ifs >> token; // expecting "endloop"
       ifs >> token; // expecting "endfacet"
     }
   }
-  return vertices;
+  return triangles;
 }
 
-std::optional<std::vector<glm::vec3>> read_stl_mesh_file(const std::string &file_path) {
+std::optional<std::vector<Triangle>> read_stl_mesh_file(const std::string &file_path) {
   std::ifstream ifs(file_path, std::ifstream::ate | std::ifstream::binary);
   if (!ifs.is_open()) {
     std::cerr << "Failed to open file: " << file_path << std::endl;

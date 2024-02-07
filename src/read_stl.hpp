@@ -1,9 +1,9 @@
 #pragma once
 
 #include <optional>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include <glm/vec3.hpp>
+#include "triangle.hpp"
 
-std::optional<std::vector<glm::vec3>> read_stl_mesh_file(const std::string &file_path);
+std::optional<std::vector<Triangle>> read_stl_mesh_file(const std::string &file_path);

@@ -37,6 +37,7 @@ target_sources(geobox PRIVATE
     object.hpp
     read_stl.cpp
     read_stl.hpp
+    triangle.hpp
 )
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)

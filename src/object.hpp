@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include "bvh.hpp"
+#include "triangle.hpp"
 
 class Object {
 private:
@@ -41,7 +42,7 @@ public:
 
   // We use shared pointer to still allow using the object easily in multiple places and still avoid double free and
   // prevent use after free
-  [[nodiscard]] static std::shared_ptr<Object> from_triangles(const std::vector<glm::vec3> &triangle_mesh_vertices,
+  [[nodiscard]] static std::shared_ptr<Object> from_triangles(const std::vector<Triangle> &triangles,
                                                               const glm::mat4 &model);
   void draw() const;
 
