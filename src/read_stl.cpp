@@ -46,7 +46,7 @@ static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs) {
     ifs >> token;
     if (token == "facet") {
       ifs >> token;                   // expecting "normal"
-      ifs >> token >> token >> token; // Skip normal
+      ifs >> token >> token >> token; // Skip x, y and z of normal vector
       ifs >> token;                   // expecting "outer"
       ifs >> token;                   // expecting "loop"
       for (glm::vec3 &vertex : triangles.emplace_back().vertices) {
