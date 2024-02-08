@@ -361,6 +361,20 @@ void GeoBox_App::render() {
     ImGuiFileDialog::Instance()->Close();
   }
 
+  ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 5, main_viewport->WorkSize.y), ImGuiCond_Always);
+  ImGui::Begin("Operations", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+  if (ImGui::CollapsingHeader("Points In Volume", ImGuiTreeNodeFlags_DefaultOpen)) {
+    // TODO
+  }
+  if (ImGui::CollapsingHeader("Mesh Offset", ImGuiTreeNodeFlags_DefaultOpen)) {
+    // TODO
+  }
+  if (ImGui::CollapsingHeader("Points On Surface", ImGuiTreeNodeFlags_DefaultOpen)) {
+    // TODO
+  }
+  ImGui::End();
+
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
