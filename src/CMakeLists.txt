@@ -39,6 +39,8 @@ target_sources(geobox PRIVATE
     read_stl.hpp
     triangle.hpp
     aabb.hpp
+    ray.hpp
+    ray_aabb_intersection.hpp
 )
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)
@@ -65,8 +67,8 @@ install(DIRECTORY resources DESTINATION .)
 include(CPack)
 
 add_executable(test_ray_aabb_intersection
-    bvh.cpp
-    bvh.hpp
+    ray_aabb_intersection.cpp
+    ray_aabb_intersection.hpp
     common.cpp
     common.hpp
 )
