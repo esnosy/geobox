@@ -40,6 +40,7 @@ target_sources(geobox PRIVATE
     triangle.hpp
     aabb.hpp
     ray.hpp
+    ray_aabb_intersection.cpp
     ray_aabb_intersection.hpp
 )
 
