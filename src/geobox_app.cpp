@@ -327,7 +327,7 @@ void GeoBox_App::generate_points_on_surface() {
   std::vector<glm::vec3> points;
 
   std::uniform_real_distribution<float> random_factor(0.0f, 1.0f);
-  for (const std::shared_ptr<Object> &object : m_objects) {
+  for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
     const std::vector<glm::vec3> &vertices = object->get_vertices();
     const std::vector<unsigned int> &indices = object->get_indices();
     for (size_t i = 0; i < indices.size(); i += 3) {
@@ -386,7 +386,7 @@ void GeoBox_App::render() {
   glUniform3fv(camera_pos_uniform_location, 1, glm::value_ptr(m_camera.get_camera_pos()));
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
-  for (const std::shared_ptr<Object> &object : m_objects) {
+  for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model()));
     object->draw();
   }
@@ -485,7 +485,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   }
 
   try {
-    auto object = std::make_shared<Object>(triangles.value(), glm::mat4(1.0f));
+    auto object = std::make_shared<Mesh_Object>(triangles.value(), glm::mat4(1.0f));
     m_objects.push_back(object);
   } catch (const GeoBox_Error &error) {
     std::cerr << error.what() << std::endl;

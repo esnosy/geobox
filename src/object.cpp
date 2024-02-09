@@ -28,7 +28,7 @@ bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-Object::Object(const std::vector<Triangle> &triangles, const glm::mat4 &model) : m_model(model) {
+Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model) : m_model(model) {
   if (triangles.empty()) {
     throw GeoBox_Error("Empty mesh");
   }
@@ -194,12 +194,12 @@ Object::Object(const std::vector<Triangle> &triangles, const glm::mat4 &model) :
   }
 }
 
-void Object::draw() const {
+void Mesh_Object::draw() const {
   glBindVertexArray(m_VAO);
   glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, nullptr);
 }
 
-Object::~Object() {
+Mesh_Object::~Mesh_Object() {
   glDeleteVertexArrays(1, &m_VAO);
   glDeleteBuffers(1, &m_vertex_positions_buffer_object);
   glDeleteBuffers(1, &m_vertex_normals_buffer_object);
