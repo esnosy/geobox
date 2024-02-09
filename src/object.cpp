@@ -7,6 +7,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include "bvh.hpp"
+#include "geobox_exceptions.hpp"
 #include "object.hpp"
 #include "triangle.hpp"
 
@@ -27,16 +28,12 @@ bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &triangles, const glm::mat4 &model) {
+Object::Object(const std::vector<Triangle> &triangles, const glm::mat4 &model) : m_model(model) {
   if (triangles.empty()) {
-    std::cerr << "Empty mesh" << std::endl;
-    return {};
+    throw GeoBox_Error("Empty mesh");
   }
 
-  // We cannot use std::make_shared directly if constructor is private
-  auto result = std::shared_ptr<Object>(new Object());
-  result->m_model = model;
-  result->m_normal = glm::transpose(glm::inverse(model));
+  m_normal = glm::transpose(glm::inverse(model));
 
   size_t num_vertices = triangles.size() * 3;
 
@@ -53,8 +50,7 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
 
   std::shared_ptr<BVH> bvh = BVH::from_bounding_boxes(vertices_as_bounding_boxes);
   if (!bvh) {
-    std::cerr << "Failed to build BVH" << std::endl;
-    return {};
+    throw GeoBox_Error("Failed to build BVH");
   }
   assert(bvh->count_primitives() == num_vertices);
   std::cout << "Num nodes = " << bvh->count_nodes() << std::endl;
@@ -110,11 +106,8 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
   std::vector<float> num_triangles_per_vertex(unique_vertices.size(), 0.0f);
   for (unsigned int vi : indices) {
     if (num_triangles_per_vertex[vi] == std::numeric_limits<float>::max()) {
-      std::cerr
-          << "Number of triangles per vertex exceeds maximum value of a float, aborting vertex normals calculation"
-          << std::endl
-          << "Failed to load mesh" << std::endl;
-      return {};
+      throw Overflow_Check_Error(
+          "Number of triangles per vertex exceeds maximum value of a float, aborting vertex normals calculation");
     }
     num_triangles_per_vertex[vi] += 1;
   }
@@ -138,20 +131,18 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
   }
 
   if (unique_vertices.size() > (std::numeric_limits<unsigned int>::max() / sizeof(glm::vec3))) {
-    std::cerr << "Aborting GPU mesh creation, too many vertices, TODO: support larger meshes" << std::endl;
-    return {};
+    throw Overflow_Check_Error("Aborting GPU mesh creation, too many vertices, TODO: support larger meshes");
   }
   auto unique_vertices_buffer_size = static_cast<unsigned int>(unique_vertices.size() * sizeof(glm::vec3));
 
   if (indices.size() > (std::numeric_limits<int>::max() / sizeof(unsigned int))) {
-    std::cerr << "Aborting GPU mesh creation, too many indices, TODO: support larger meshes" << std::endl;
-    return {};
+    throw Overflow_Check_Error("Aborting GPU mesh creation, too many indices, TODO: support larger meshes");
   }
 
   // Set CPU mesh
-  result->m_vertices = unique_vertices;
-  result->m_indices = indices;
-  result->m_vertex_normals = vertex_normals;
+  m_vertices = unique_vertices;
+  m_indices = indices;
+  m_vertex_normals = vertex_normals;
 
   // Create new GPU mesh data
   unsigned int VAO;
@@ -165,8 +156,8 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(0);
 
-  result->m_num_indices = static_cast<int>(indices.size());
-  int indices_buffer_size = result->m_num_indices * static_cast<int>(sizeof(unsigned int));
+  m_num_indices = static_cast<int>(indices.size());
+  int indices_buffer_size = m_num_indices * static_cast<int>(sizeof(unsigned int));
   unsigned int EBO;
   glGenBuffers(1, &EBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -177,14 +168,14 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
   unsigned int vertex_normals_buffer_object;
   glGenBuffers(1, &vertex_normals_buffer_object);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_normals_buffer_object);
-  glBufferData(GL_ARRAY_BUFFER, vertex_normals_buffer_size, result->m_vertex_normals.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertex_normals_buffer_size, m_vertex_normals.data(), GL_STATIC_DRAW);
   glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
   glEnableVertexAttribArray(1);
 
-  result->m_VAO = VAO;
-  result->m_vertex_positions_buffer_object = vertex_positions_buffer_object;
-  result->m_vertex_normals_buffer_object = vertex_normals_buffer_object;
-  result->m_EBO = EBO;
+  m_VAO = VAO;
+  m_vertex_positions_buffer_object = vertex_positions_buffer_object;
+  m_vertex_normals_buffer_object = vertex_normals_buffer_object;
+  m_EBO = EBO;
 
   // Build BVH for triangles
   std::vector<AABB> triangle_bounding_boxes;
@@ -197,12 +188,10 @@ std::shared_ptr<Object> Object::from_triangles(const std::vector<Triangle> &tria
     aabb.max = glm::max(a, glm::max(b, c));
     triangle_bounding_boxes.push_back(aabb);
   }
-  result->m_triangles_bvh = BVH::from_bounding_boxes(triangle_bounding_boxes);
-  if (!(result->m_triangles_bvh)) {
-    return {};
+  m_triangles_bvh = BVH::from_bounding_boxes(triangle_bounding_boxes);
+  if (!m_triangles_bvh) {
+    throw GeoBox_Error("Failed to build triangles' BVH");
   }
-
-  return result;
 }
 
 void Object::draw() const {

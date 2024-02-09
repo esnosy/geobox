@@ -484,12 +484,13 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     return;
   }
 
-  std::shared_ptr<Object> object = Object::from_triangles(triangles.value(), glm::mat4(1.0f));
-  if (!object) {
+  try {
+    auto object = std::make_shared<Object>(triangles.value(), glm::mat4(1.0f));
+    m_objects.push_back(object);
+  } catch (const GeoBox_Error &error) {
+    std::cerr << error.what() << std::endl;
     std::cerr << "Failed to create object" << std::endl;
-    return;
   }
-  m_objects.push_back(object);
 
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
   PerformanceAPI_EndEvent();

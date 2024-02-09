@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory> // for std::shared_ptr
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -29,9 +28,6 @@ private:
 
   std::shared_ptr<BVH> m_triangles_bvh;
 
-  // Private default constructor to only allow creating objects through public API
-  Object() = default;
-
 public:
   // GPU memory is freed in destructor,
   // avoid double free by disabling copy constructor and copy assignment operator,
@@ -40,10 +36,7 @@ public:
   Object &operator=(const Object &) = delete;
   ~Object();
 
-  // We use shared pointer to still allow using the object easily in multiple places and still avoid double free and
-  // prevent use after free
-  [[nodiscard]] static std::shared_ptr<Object> from_triangles(const std::vector<Triangle> &triangles,
-                                                              const glm::mat4 &model);
+  Object(const std::vector<Triangle> &triangles, const glm::mat4 &model);
   void draw() const;
 
   [[nodiscard]] glm::mat4 get_model() const { return m_model; }
