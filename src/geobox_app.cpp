@@ -24,6 +24,7 @@
 
 #include "bvh.hpp"
 #include "geobox_app.hpp"
+#include "point_cloud.hpp"
 #include "read_stl.hpp"
 #include "triangle.hpp"
 
@@ -48,6 +49,9 @@ constexpr float CAMERA_ORBIT_ROTATE_SPEED_RADIANS = glm::radians(20.0f);
 constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 
 constexpr int NUM_ANTIALIASING_SAMPLES = 8;
+
+constexpr float DEFAULT_POINT_SIZE = 6.0f;
+constexpr float DEFAULT_SURFACE_RANDOM_POINTS_ABSOLUTE_DENSITY = 10000000.0f;
 
 static std::optional<std::string> read_file_as_string(const std::string &file_path) {
   std::ifstream ifs(file_path, std::ifstream::binary);
@@ -80,6 +84,9 @@ GeoBox_App::GeoBox_App() {
 
   // Enable anti-aliasing
   glEnable(GL_MULTISAMPLE);
+
+  // Set point size
+  glPointSize(DEFAULT_POINT_SIZE);
 }
 
 void GeoBox_App::main_loop() {
@@ -169,18 +176,19 @@ void GeoBox_App::init_imgui() {
   ImGui_ImplOpenGL3_Init();
 }
 
-bool GeoBox_App::init_shaders() {
-  std::optional<std::string> default_vertex_shader_source = read_file_as_string("resources/shaders/phong.vert");
-  if (!default_vertex_shader_source.has_value()) {
-    return false;
+static std::optional<unsigned int> load_shader_program(const std::string &vertex_source_path,
+                                                       const std::string &fragment_source_path) {
+  std::optional<std::string> vertex_shader_source = read_file_as_string(vertex_source_path);
+  if (!vertex_shader_source.has_value()) {
+    return {};
   }
-  std::optional<std::string> default_fragment_shader_source = read_file_as_string("resources/shaders/phong.frag");
-  if (!default_fragment_shader_source.has_value()) {
-    return false;
+  std::optional<std::string> fragment_shader_source = read_file_as_string(fragment_source_path);
+  if (!fragment_shader_source.has_value()) {
+    return {};
   }
 
-  std::vector<char *> vertex_shader_sources = {default_vertex_shader_source->data()};
-  std::vector<char *> fragment_shader_sources = {default_fragment_shader_source->data()};
+  std::vector<char *> vertex_shader_sources = {vertex_shader_source->data()};
+  std::vector<char *> fragment_shader_sources = {fragment_shader_source->data()};
   int success;
 
   int max_info_log_length = 512;
@@ -195,7 +203,7 @@ bool GeoBox_App::init_shaders() {
     glGetShaderInfoLog(vertex_shader, max_info_log_length, &actual_info_log_length, info_log.data());
     std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
               << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return false;
+    return {};
   }
 
   unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -206,7 +214,7 @@ bool GeoBox_App::init_shaders() {
     glGetShaderInfoLog(fragment_shader, max_info_log_length, &actual_info_log_length, info_log.data());
     std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
               << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return false;
+    return {};
   }
 
   unsigned int shader_program = glCreateProgram();
@@ -218,13 +226,29 @@ bool GeoBox_App::init_shaders() {
     glGetProgramInfoLog(shader_program, max_info_log_length, &actual_info_log_length, info_log.data());
     std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
               << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return false;
+    return {};
   }
 
   glDeleteShader(vertex_shader);
   glDeleteShader(fragment_shader);
 
-  m_default_shader_program = shader_program;
+  return shader_program;
+}
+
+bool GeoBox_App::init_shaders() {
+  std::optional<unsigned int> phong_shader_program =
+      load_shader_program("resources/shaders/phong.vert", "resources/shaders/phong.frag");
+  if (!phong_shader_program) {
+    return false;
+  }
+  std::optional<unsigned int> point_cloud_shader_program =
+      load_shader_program("resources/shaders/point_cloud.vert", "resources/shaders/point_cloud.frag");
+  if (!point_cloud_shader_program) {
+    return false;
+  }
+
+  m_default_shader_program = phong_shader_program.value();
+  m_point_cloud_shader_program = point_cloud_shader_program.value();
 
   return true;
 }
@@ -292,6 +316,43 @@ void GeoBox_App::process_input() {
                   camera_orbit_origin_offset);
 }
 
+// https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
+static glm::vec2 random_triangle_barycentric_coords(const glm::vec2 &u) {
+  float su0 = std::sqrt(u[0]);
+  return glm::vec2(1 - su0, u[1] * su0);
+}
+
+void GeoBox_App::generate_points_on_surface() {
+  std::shared_ptr<Point_Cloud> point_cloud = Point_Cloud_Creator::create_point_cloud();
+
+  std::uniform_real_distribution<float> random_factor(0.0f, 1.0f);
+  for (const std::shared_ptr<Object> &object : m_objects) {
+    const std::vector<glm::vec3> &vertices = object->get_vertices();
+    const std::vector<unsigned int> &indices = object->get_indices();
+    for (size_t i = 0; i < indices.size(); i += 3) {
+      const glm::vec3 &a = vertices[indices[i + 0]];
+      const glm::vec3 &b = vertices[indices[i + 1]];
+      const glm::vec3 &c = vertices[indices[i + 2]];
+      glm::vec3 ab = b - a;
+      glm::vec3 ac = c - a;
+      float area = glm::length(glm::cross(ab, ac)) * 0.5f;
+      for (size_t j = 0; j < std::llroundf(area * DEFAULT_SURFACE_RANDOM_POINTS_ABSOLUTE_DENSITY); j++) {
+        glm::vec2 uv =
+            random_triangle_barycentric_coords({random_factor(m_random_engine), random_factor(m_random_engine)});
+        glm::vec3 p = ab * uv.x + ac * uv.y + a;
+        point_cloud->add_point(p);
+      }
+    }
+  }
+
+  std::shared_ptr<Point_Cloud_Object> point_cloud_object =
+      Point_Cloud_Object_Creator::create_point_cloud_object(point_cloud, glm::mat4(1.0f));
+  if (point_cloud_object) {
+    std::cout << "Created point cloud with " << point_cloud->get_points().size() << " points" << std::endl;
+    m_point_cloud_objects.push_back(point_cloud_object);
+  }
+}
+
 void GeoBox_App::render() {
   int width;
   int height;
@@ -328,6 +389,25 @@ void GeoBox_App::render() {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model()));
     object->draw();
   }
+
+  int original_depth_func;
+  glGetIntegerv(GL_DEPTH_FUNC, &original_depth_func);
+  // Set depth function to "less than or equal", so even if camera is parallel to a face,
+  // points on that face will be visible
+  // TODO: fancier point rendering
+  glDepthFunc(GL_LEQUAL);
+  glUseProgram(m_point_cloud_shader_program);
+  view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
+  glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
+  projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
+  glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
+  model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
+  for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
+    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
+                       glm::value_ptr(point_cloud_object->get_model_matrix()));
+    point_cloud_object->draw();
+  }
+  glDepthFunc(original_depth_func);
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
@@ -371,7 +451,9 @@ void GeoBox_App::render() {
     // TODO
   }
   if (ImGui::CollapsingHeader("Points On Surface", ImGuiTreeNodeFlags_DefaultOpen)) {
-    // TODO
+    if (ImGui::Button("Generate")) {
+      generate_points_on_surface();
+    }
   }
   ImGui::End();
 

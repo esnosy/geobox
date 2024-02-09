@@ -49,4 +49,8 @@ public:
   [[nodiscard]] glm::mat4 get_model() const { return m_model; }
 
   [[nodiscard]] glm::mat3 get_normal() const { return m_normal; }
+
+  [[nodiscard]] const std::vector<glm::vec3> &get_vertices() const { return m_vertices; }
+
+  [[nodiscard]] const std::vector<unsigned int> &get_indices() const { return m_indices; }
 };

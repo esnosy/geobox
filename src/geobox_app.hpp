@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,7 @@
 
 #include "object.hpp"
 #include "orbit_camera.hpp"
+#include "point_cloud.hpp"
 
 constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
 // Azimuth is relative to +X, so we can make default value -pi/2 (-90 degrees) to make the default camera right vector
@@ -31,8 +33,10 @@ private:
   GLFWwindow *m_window = nullptr;
 
   unsigned int m_default_shader_program = 0;
+  unsigned int m_point_cloud_shader_program = 0;
 
   std::vector<std::shared_ptr<Object>> m_objects;
+  std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
 
   float m_perspective_fov_degrees = 45.0f;
 
@@ -43,6 +47,10 @@ private:
   float m_last_frame_time = 0.0f; // Time of last frame
 
   std::optional<glm::vec2> m_last_mouse_pos;
+
+  // Randomness
+  std::random_device m_random_device;
+  std::default_random_engine m_random_engine = std::default_random_engine(m_random_device());
 
   // Init
   void init_glfw();
@@ -62,4 +70,7 @@ private:
 
   // Dialogs
   void on_load_stl_dialog_ok(const std::string &file_path);
+
+  // Operations
+  void generate_points_on_surface();
 };
