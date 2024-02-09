@@ -24,6 +24,7 @@
 
 #include "bvh.hpp"
 #include "geobox_app.hpp"
+#include "geobox_exceptions.hpp"
 #include "point_cloud.hpp"
 #include "read_stl.hpp"
 #include "triangle.hpp"
@@ -323,7 +324,7 @@ static glm::vec2 random_triangle_barycentric_coords(const glm::vec2 &u) {
 }
 
 void GeoBox_App::generate_points_on_surface() {
-  std::shared_ptr<Point_Cloud> point_cloud = Point_Cloud_Creator::create_point_cloud();
+  std::vector<glm::vec3> points;
 
   std::uniform_real_distribution<float> random_factor(0.0f, 1.0f);
   for (const std::shared_ptr<Object> &object : m_objects) {
@@ -340,16 +341,16 @@ void GeoBox_App::generate_points_on_surface() {
         glm::vec2 uv =
             random_triangle_barycentric_coords({random_factor(m_random_engine), random_factor(m_random_engine)});
         glm::vec3 p = ab * uv.x + ac * uv.y + a;
-        point_cloud->add_point(p);
+        points.push_back(p);
       }
     }
   }
 
-  std::shared_ptr<Point_Cloud_Object> point_cloud_object =
-      Point_Cloud_Object_Creator::create_point_cloud_object(point_cloud, glm::mat4(1.0f));
-  if (point_cloud_object) {
-    std::cout << "Created point cloud with " << point_cloud->get_points().size() << " points" << std::endl;
+  try {
+    Point_Cloud_Object point_cloud_object(points, glm::mat4(1.0f));
     m_point_cloud_objects.push_back(point_cloud_object);
+  } catch (const GeoBox_Error &error) {
+    std::cerr << error.what() << std::endl;
   }
 }
 
@@ -402,10 +403,10 @@ void GeoBox_App::render() {
   projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
   model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
-  for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
+  for (const Point_Cloud_Object &point_cloud_object : m_point_cloud_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
-                       glm::value_ptr(point_cloud_object->get_model_matrix()));
-    point_cloud_object->draw();
+                       glm::value_ptr(point_cloud_object.get_model_matrix()));
+    point_cloud_object.draw();
   }
   glDepthFunc(original_depth_func);
 
