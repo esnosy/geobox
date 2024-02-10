@@ -61,7 +61,6 @@ private:
   bool init_shaders();
 
   // Callbacks
-  friend void window_refresh_callback(GLFWwindow *window);
   friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
 
   // Main-loop internals
