@@ -11,7 +11,7 @@
 
 #include "mesh_object.hpp"
 #include "orbit_camera.hpp"
-#include "point_cloud.hpp"
+#include "point_cloud_object.hpp"
 
 constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
 // Azimuth is relative to +X, so we can make default value -pi/2 (-90 degrees) to make the default camera right vector

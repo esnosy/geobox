@@ -25,7 +25,7 @@
 #include "bvh.hpp"
 #include "geobox_app.hpp"
 #include "geobox_exceptions.hpp"
-#include "point_cloud.hpp"
+#include "point_cloud_object.hpp"
 #include "read_stl.hpp"
 #include "triangle.hpp"
 

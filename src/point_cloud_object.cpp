@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 
 #include "geobox_exceptions.hpp"
-#include "point_cloud.hpp"
+#include "point_cloud_object.hpp"
 
 Point_Cloud_Object::Point_Cloud_Object(const std::vector<glm::vec3> &points, const glm::mat4 &model_matrix)
     : m_points(points), m_model_matrix(model_matrix) {
