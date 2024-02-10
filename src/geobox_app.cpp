@@ -400,11 +400,11 @@ void GeoBox_App::render() {
   // TODO: fancier point rendering
   glDepthFunc(GL_LEQUAL);
   glUseProgram(m_point_cloud_shader_program);
-  view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
+  view_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "view");
   glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
-  projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
+  projection_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
-  model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
+  model_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "model");
   for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
                        glm::value_ptr(point_cloud_object->get_model_matrix()));
