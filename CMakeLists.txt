@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
 project(geobox_cmake_project)
 
+option(ENABLE_CCACHE "" YES)
+
+if(ENABLE_CCACHE)
+    message(STATUS "Enabling ccache")
+
+    # https://cliutils.gitlab.io/modern-cmake/chapters/features/utilities.html#ccache
+    find_program(CCACHE_PROGRAM ccache REQUIRED)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
 option(WITH_ASAN "Enable ASAN" YES)
 
 if(WITH_ASAN)
