@@ -15,7 +15,7 @@ endif()
 
 option(ENABLE_SUPERLUMINAL_PERF_API "" NO)
 
-if(${ENABLE_SUPERLUMINAL_PERF_API})
+if(ENABLE_SUPERLUMINAL_PERF_API)
     set(CMAKE_MODULE_PATH "C:\\Program Files\\Superluminal\\Performance\\API" ${CMAKE_MODULE_PATH})
     find_package(SuperluminalAPI REQUIRED)
     target_link_libraries(geobox PRIVATE SuperluminalAPI)

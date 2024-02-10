@@ -11,9 +11,9 @@ if(ENABLE_CCACHE)
     set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
 endif()
 
-option(WITH_ASAN "Enable ASAN" YES)
+option(ENABLE_ASAN "" YES)
 
-if(WITH_ASAN)
+if(ENABLE_ASAN)
     message(STATUS "Enabling ASAN")
 
     if(MSVC)
