@@ -387,7 +387,7 @@ void GeoBox_App::render() {
 
   int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
   for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
-    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model()));
+    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model_matrix()));
     object->draw();
   }
 

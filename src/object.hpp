@@ -23,8 +23,8 @@ private:
   std::vector<unsigned int> m_indices;
   std::vector<glm::vec3> m_vertex_normals;
 
-  glm::mat4 m_model;
-  glm::mat3 m_normal;
+  glm::mat4 m_model_matrix;
+  glm::mat3 m_normal_matrix;
 
   std::shared_ptr<BVH> m_triangles_bvh;
 
@@ -36,12 +36,12 @@ public:
   Mesh_Object &operator=(const Mesh_Object &) = delete;
   ~Mesh_Object();
 
-  Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model);
+  Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix);
   void draw() const;
 
-  [[nodiscard]] glm::mat4 get_model() const { return m_model; }
+  [[nodiscard]] const glm::mat4 &get_model_matrix() const { return m_model_matrix; }
 
-  [[nodiscard]] glm::mat3 get_normal() const { return m_normal; }
+  [[nodiscard]] const glm::mat3 &get_normal_matrix() const { return m_normal_matrix; }
 
   [[nodiscard]] const std::vector<glm::vec3> &get_vertices() const { return m_vertices; }
 

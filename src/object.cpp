@@ -28,12 +28,13 @@ bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model) : m_model(model) {
+Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix)
+    : m_model_matrix(model_matrix) {
   if (triangles.empty()) {
     throw GeoBox_Error("Empty mesh");
   }
 
-  m_normal = glm::transpose(glm::inverse(model));
+  m_normal_matrix = glm::transpose(glm::inverse(model_matrix));
 
   size_t num_vertices = triangles.size() * 3;
 
