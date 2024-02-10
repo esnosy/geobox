@@ -2,8 +2,6 @@
 
 #include <cassert>
 #include <functional>
-#include <memory>
-#include <optional>
 #include <vector>
 
 #include "aabb.hpp"
@@ -35,20 +33,15 @@ private:
   void foreach_leaf_node(const std::function<void(const Node *)> &callback,
                          const std::function<bool(const AABB &aabb)> &aabb_filter) const;
 
-  // Private default constructor to only allow creating objects through public API
-  BVH() = default;
-
 public:
   // Memory is freed in destructor,
   // avoid double free by disabling copy constructor and copy assignment operator,
   // also known as the "Rule of three"
   BVH(const BVH &) = delete;
   BVH &operator=(const BVH &) = delete;
-
-  // We use shared pointer to still allow using the object easily in multiple places and still avoid double free and
-  // prevent use after free
-  [[nodiscard]] static std::shared_ptr<BVH> from_bounding_boxes(const std::vector<AABB> &bounding_boxes);
   ~BVH();
+
+  explicit BVH(const std::vector<AABB> &bounding_boxes);
   [[nodiscard]] size_t count_nodes() const;
   [[nodiscard]] size_t calc_max_leaf_size() const;
   [[nodiscard]] size_t count_primitives() const;

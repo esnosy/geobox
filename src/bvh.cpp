@@ -3,7 +3,6 @@
 #include <functional>
 #include <iostream>
 #include <limits> // for std::numeric_limits
-#include <memory> // for std::shared_ptr
 #include <stack>
 #include <tuple>   // for std::tie
 #include <utility> // for std::as_const
@@ -14,6 +13,7 @@
 
 #include "bvh.hpp"
 #include "common.hpp"
+#include "geobox_exceptions.hpp"
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
@@ -30,11 +30,10 @@ static AABB calc_aabb_indirect(const std::vector<AABB> &bounding_boxes, const un
   return aabb;
 }
 
-std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_boxes) {
+BVH::BVH(const std::vector<AABB> &bounding_boxes) {
   size_t num_primitives = bounding_boxes.size();
   if (num_primitives == 0) {
-    std::cerr << "Zero number of primitives, aborting creation of BVH..." << std::endl;
-    return {};
+    throw GeoBox_Error("Zero number of primitives, aborting creation of BVH...");
   }
 
   // Calculate bounding box centers
@@ -46,31 +45,28 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_
     bounding_box_centers.emplace_back(aabb.min * 0.5f + aabb.max * 0.5f);
   }
 
-  // We cannot use std::make_shared directly if constructor is private
-  auto result = std::shared_ptr<BVH>(new BVH());
-
   // Pre-allocate nodes
-  result->m_pre_allocated_nodes = (Node *)malloc(sizeof(Node) * (2 * num_primitives - 1));
-  result->m_current_free_node = result->m_pre_allocated_nodes;
+  m_pre_allocated_nodes = (Node *)malloc(sizeof(Node) * (2 * num_primitives - 1));
+  m_current_free_node = m_pre_allocated_nodes;
 
   // Build initial indices array
-  result->m_primitive_indices = (unsigned int *)malloc(sizeof(unsigned int) * num_primitives);
+  m_primitive_indices = (unsigned int *)malloc(sizeof(unsigned int) * num_primitives);
   for (unsigned int i = 0; i < num_primitives; i++) {
-    result->m_primitive_indices[i] = i;
+    m_primitive_indices[i] = i;
   }
 
   // Create root
-  result->m_root = result->new_node();
-  *(result->m_root) = {
-      .first = result->m_primitive_indices,
-      .last = result->m_primitive_indices + num_primitives - 1,
+  m_root = new_node();
+  *m_root = {
+      .first = m_primitive_indices,
+      .last = m_primitive_indices + num_primitives - 1,
       .left = nullptr,
       .right = nullptr,
   };
 
   // Build tree
   std::stack<Node *> stack;
-  stack.push(result->m_root);
+  stack.push(m_root);
   while (!stack.empty()) {
     Node *node = stack.top();
     stack.pop();
@@ -87,8 +83,7 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_
     // Calculate variance
     auto num_primitives_as_float = static_cast<float>(node->num_primitives());
     if (num_primitives_as_float > std::numeric_limits<float>::max()) {
-      std::cerr << "Too many primitives for variance calculation, aborting BVH build" << std::endl;
-      return {};
+      throw Overflow_Check_Error("Too many primitives for variance calculation, aborting BVH build");
     }
     glm::vec3 mean_of_squares(0);
     glm::vec3 mean(0);
@@ -124,14 +119,14 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_
       continue;
     }
 
-    node->left = result->new_node();
+    node->left = new_node();
     *(node->left) = {
         .first = node->first,
         .last = second_group_first - 1,
         .left = nullptr,
         .right = nullptr,
     };
-    node->right = result->new_node();
+    node->right = new_node();
     *(node->right) = {
         .first = second_group_first,
         .last = node->last,
@@ -141,8 +136,6 @@ std::shared_ptr<BVH> BVH::from_bounding_boxes(const std::vector<AABB> &bounding_
     stack.push(node->left);
     stack.push(node->right);
   }
-
-  return result;
 }
 
 BVH::~BVH() {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory> // for std::shared_ptr
 #include <optional>
 #include <random>
 #include <string>

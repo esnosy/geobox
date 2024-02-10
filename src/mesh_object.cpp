@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdlib> // for std::div
 #include <iostream>
+#include <memory>  // for std::make_shared
 #include <utility> // for std::as_const
 
 #include <glad/glad.h>
@@ -49,9 +50,12 @@ Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4
     }
   }
 
-  std::shared_ptr<BVH> bvh = BVH::from_bounding_boxes(vertices_as_bounding_boxes);
-  if (!bvh) {
-    throw GeoBox_Error("Failed to build BVH");
+  std::shared_ptr<BVH> bvh;
+  try {
+    bvh = std::make_shared<BVH>(vertices_as_bounding_boxes);
+  } catch (const GeoBox_Error &) {
+    std::cerr << "Failed to build vertices BVH" << std::endl;
+    throw; // rethrows original error
   }
   assert(bvh->count_primitives() == num_vertices);
   std::cout << "Num nodes = " << bvh->count_nodes() << std::endl;
@@ -189,9 +193,12 @@ Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4
     aabb.max = glm::max(a, glm::max(b, c));
     triangle_bounding_boxes.push_back(aabb);
   }
-  m_triangles_bvh = BVH::from_bounding_boxes(triangle_bounding_boxes);
-  if (!m_triangles_bvh) {
-    throw GeoBox_Error("Failed to build triangles' BVH");
+
+  try {
+    m_triangles_bvh = std::make_shared<BVH>(triangle_bounding_boxes);
+  } catch (const GeoBox_Error &) {
+    std::cerr << "Failed to build triangles BVH" << std::endl;
+    throw; // rethrows original error
   }
 }
 
