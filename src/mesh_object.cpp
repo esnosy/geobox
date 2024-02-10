@@ -11,12 +11,12 @@
 #include "mesh_object.hpp"
 #include "triangle.hpp"
 
-glm::vec3 closest_point_on_aabb(const glm::vec3 &point, const AABB &aabb) {
+glm::vec3 closest_point_in_aabb(const glm::vec3 &point, const AABB &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
 float point_aabb_distance_squared(const glm::vec3 &point, const AABB &aabb) {
-  return glm::distance2(point, closest_point_on_aabb(point, aabb));
+  return glm::distance2(point, closest_point_in_aabb(point, aabb));
 }
 
 struct Sphere {
