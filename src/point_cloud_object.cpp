@@ -33,3 +33,8 @@ void Point_Cloud_Object::draw() const {
   glBindVertexArray(m_VAO);
   glDrawArrays(GL_POINTS, 0, static_cast<int>(m_points.size()));
 }
+
+Point_Cloud_Object::~Point_Cloud_Object() {
+  glDeleteVertexArrays(1, &m_VAO);
+  glDeleteBuffers(1, &m_VBO);
+}

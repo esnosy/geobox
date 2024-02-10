@@ -13,8 +13,14 @@ private:
   unsigned int m_VBO;
 
 public:
-  Point_Cloud_Object(const std::vector<glm::vec3> &points, const glm::mat4 &model_matrix);
+  // GPU memory is freed in destructor,
+  // avoid double free by disabling copy constructor and copy assignment operator,
+  // also known as the "Rule of three"
+  Point_Cloud_Object(const Point_Cloud_Object &) = delete;
+  Point_Cloud_Object &operator=(const Point_Cloud_Object &) = delete;
+  ~Point_Cloud_Object();
 
+  Point_Cloud_Object(const std::vector<glm::vec3> &points, const glm::mat4 &model_matrix);
   void draw() const;
 
   const std::vector<glm::vec3> &get_points() const { return m_points; }

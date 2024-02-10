@@ -347,7 +347,7 @@ void GeoBox_App::generate_points_on_surface() {
   }
 
   try {
-    Point_Cloud_Object point_cloud_object(points, glm::mat4(1.0f));
+    auto point_cloud_object = std::make_shared<Point_Cloud_Object>(points, glm::mat4(1.0f));
     m_point_cloud_objects.push_back(point_cloud_object);
   } catch (const GeoBox_Error &error) {
     std::cerr << error.what() << std::endl;
@@ -403,10 +403,10 @@ void GeoBox_App::render() {
   projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
   model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
-  for (const Point_Cloud_Object &point_cloud_object : m_point_cloud_objects) {
+  for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
-                       glm::value_ptr(point_cloud_object.get_model_matrix()));
-    point_cloud_object.draw();
+                       glm::value_ptr(point_cloud_object->get_model_matrix()));
+    point_cloud_object->draw();
   }
   glDepthFunc(original_depth_func);
 

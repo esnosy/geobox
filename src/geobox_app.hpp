@@ -37,7 +37,7 @@ private:
   unsigned int m_point_cloud_shader_program = 0;
 
   std::vector<std::shared_ptr<Mesh_Object>> m_objects;
-  std::vector<Point_Cloud_Object> m_point_cloud_objects;
+  std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
 
   float m_perspective_fov_degrees = 45.0f;
 
