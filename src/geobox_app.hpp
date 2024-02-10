@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "object.hpp"
+#include "mesh_object.hpp"
 #include "orbit_camera.hpp"
 #include "point_cloud.hpp"
 

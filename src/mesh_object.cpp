@@ -8,7 +8,7 @@
 
 #include "bvh.hpp"
 #include "geobox_exceptions.hpp"
-#include "object.hpp"
+#include "mesh_object.hpp"
 #include "triangle.hpp"
 
 glm::vec3 closest_point_on_aabb(const glm::vec3 &point, const AABB &aabb) {
