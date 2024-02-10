@@ -377,16 +377,16 @@ void GeoBox_App::render() {
   glm::mat4 projection =
       glm::perspective(glm::radians(m_perspective_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 
-  int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view");
+  int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view_matrix");
   glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
-  int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection");
+  int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection_matrix");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
 
   int camera_pos_uniform_location = glGetUniformLocation(m_default_shader_program, "camera_position");
   glUniform3fv(camera_pos_uniform_location, 1, glm::value_ptr(m_camera.get_camera_pos()));
 
-  int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model");
-  int normal_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "normal");
+  int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model_matrix");
+  int normal_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "normal_matrix");
   for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model_matrix()));
     glUniformMatrix3fv(normal_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_normal_matrix()));
@@ -400,11 +400,11 @@ void GeoBox_App::render() {
   // TODO: fancier point rendering
   glDepthFunc(GL_LEQUAL);
   glUseProgram(m_point_cloud_shader_program);
-  view_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "view");
+  view_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "view_matrix");
   glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
-  projection_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "projection");
+  projection_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "projection_matrix");
   glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
-  model_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "model");
+  model_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "model_matrix");
   for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
     glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
                        glm::value_ptr(point_cloud_object->get_model_matrix()));
