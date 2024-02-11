@@ -8,9 +8,10 @@ set_target_properties(geobox PROPERTIES CXX_EXTENSIONS OFF)
 if(MSVC)
     target_compile_options(geobox PRIVATE
         /we4716 # Equivalent to Clang/GCC -Werror=return-type # TODO: confirm
+        /we4834 # Equivalent to Clang/GCC -Werror=unused-result # TODO: confirm
     )
 else()
-    target_compile_options(geobox PRIVATE -Werror=return-type)
+    target_compile_options(geobox PRIVATE -Werror=return-type -Werror=unused-result)
 endif()
 
 option(ENABLE_SUPERLUMINAL_PERF_API "" NO)
