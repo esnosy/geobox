@@ -22,6 +22,7 @@ private:
   std::vector<glm::vec3> m_vertices;
   std::vector<unsigned int> m_indices;
   std::vector<glm::vec3> m_vertex_normals;
+  std::vector<float> m_triangle_areas;
 
   glm::mat4 m_model_matrix;
   glm::mat3 m_normal_matrix;
@@ -46,4 +47,6 @@ public:
   [[nodiscard]] const std::vector<glm::vec3> &get_vertices() const { return m_vertices; }
 
   [[nodiscard]] const std::vector<unsigned int> &get_indices() const { return m_indices; }
+
+  [[nodiscard]] const std::vector<float> &get_triangle_areas() const { return m_triangle_areas; }
 };

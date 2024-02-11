@@ -200,6 +200,18 @@ Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4
     std::cerr << "Failed to build triangles BVH" << std::endl;
     throw; // rethrows original error
   }
+
+  // Compute and store triangle areas
+  m_triangle_areas.reserve(triangles.size());
+  for (unsigned int i = 0; i < indices.size(); i += 3) {
+    const glm::vec3 &a = unique_vertices[indices[i + 0]];
+    const glm::vec3 &b = unique_vertices[indices[i + 1]];
+    const glm::vec3 &c = unique_vertices[indices[i + 2]];
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    float area = glm::length(glm::cross(ab, ac)) * 0.5f;
+    m_triangle_areas.push_back(area);
+  }
 }
 
 void Mesh_Object::draw() const {

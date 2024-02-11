@@ -1,8 +1,12 @@
 #include <cmath>
+#include <cstdint>
 #include <cstdlib> // for std::exit
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <optional>
+#include <random> // for std::discrete_distribution
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,7 +56,6 @@ constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 constexpr int NUM_ANTIALIASING_SAMPLES = 8;
 
 constexpr float DEFAULT_POINT_SIZE = 6.0f;
-constexpr float DEFAULT_SURFACE_RANDOM_POINTS_ABSOLUTE_DENSITY = 10000000.0f;
 
 static std::optional<std::string> read_file_as_string(const std::string &file_path) {
   std::ifstream ifs(file_path, std::ifstream::binary);
@@ -317,35 +320,34 @@ void GeoBox_App::process_input() {
                   camera_orbit_origin_offset);
 }
 
-// https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
-static glm::vec2 random_triangle_barycentric_coords(const glm::vec2 &u) {
-  float su0 = std::sqrt(u[0]);
-  return glm::vec2(1 - su0, u[1] * su0);
-}
-
-void GeoBox_App::generate_points_on_surface() {
+std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
   std::vector<glm::vec3> points;
-
-  std::uniform_real_distribution<float> random_factor(0.0f, 1.0f);
   for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
     const std::vector<glm::vec3> &vertices = object->get_vertices();
     const std::vector<unsigned int> &indices = object->get_indices();
-    for (size_t i = 0; i < indices.size(); i += 3) {
-      const glm::vec3 &a = vertices[indices[i + 0]];
-      const glm::vec3 &b = vertices[indices[i + 1]];
-      const glm::vec3 &c = vertices[indices[i + 2]];
+    const std::vector<float> &triangle_areas = object->get_triangle_areas();
+    // Pick a triangle randomly
+    assert(indices.size() > 0);
+    assert(indices.size() % 3 == 0);
+    std::discrete_distribution<size_t> random_index_distribution(triangle_areas.begin(), triangle_areas.end());
+    // Sample points
+    for (uint32_t i = 0; i < m_points_on_surface_count; i++) {
+      size_t triangle_index = random_index_distribution(m_random_engine);
+      const glm::vec3 &a = vertices[indices[triangle_index * 3 + 0]];
+      const glm::vec3 &b = vertices[indices[triangle_index * 3 + 1]];
+      const glm::vec3 &c = vertices[indices[triangle_index * 3 + 2]];
       glm::vec3 ab = b - a;
       glm::vec3 ac = c - a;
-      float area = glm::length(glm::cross(ab, ac)) * 0.5f;
-      for (size_t j = 0; j < std::llroundf(area * DEFAULT_SURFACE_RANDOM_POINTS_ABSOLUTE_DENSITY); j++) {
-        glm::vec2 uv =
-            random_triangle_barycentric_coords({random_factor(m_random_engine), random_factor(m_random_engine)});
-        glm::vec3 p = ab * uv.x + ac * uv.y + a;
-        points.push_back(p);
-      }
+      glm::vec2 uv = random_triangle_barycentric_coords();
+      glm::vec3 p = ab * uv.x + ac * uv.y + a;
+      points.push_back(p);
     }
   }
+  return points;
+}
 
+void GeoBox_App::on_generate_points_on_surface_button_click() {
+  std::vector<glm::vec3> points = generate_points_on_surface();
   try {
     auto point_cloud_object = std::make_shared<Point_Cloud_Object>(points, glm::mat4(1.0f));
     m_point_cloud_objects.push_back(point_cloud_object);
@@ -454,8 +456,11 @@ void GeoBox_App::render() {
     // TODO
   }
   if (ImGui::CollapsingHeader("Points On Surface", ImGuiTreeNodeFlags_DefaultOpen)) {
+    uint32_t step = 1;
+    uint32_t step_fast = 10;
+    ImGui::InputScalar("Count", ImGuiDataType_U32, &m_points_on_surface_count, &step, &step_fast);
     if (ImGui::Button("Generate")) {
-      generate_points_on_surface();
+      on_generate_points_on_surface_button_click();
     }
   }
   ImGui::End();

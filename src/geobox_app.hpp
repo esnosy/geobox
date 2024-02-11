@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath> // for std::sqrt
+#include <cstdint>
 #include <memory> // for std::shared_ptr
 #include <optional>
 #include <random>
@@ -20,6 +22,9 @@ constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
 constexpr float DEFAULT_ORBIT_CAMERA_AZIMUTH = -1.0f * glm::half_pi<float>();
 constexpr float DEFAULT_ORBIT_CAMERA_RADIUS = 1.0f;
 constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
+
+constexpr float DEFAULT_POINTS_ON_SURFACE_DENSITY = 1.0f;
+constexpr uint32_t DEFAULT_POINT_ON_SURFACE_COUNT = 100;
 
 class GeoBox_App {
 public:
@@ -51,7 +56,18 @@ private:
 
   // Randomness
   std::random_device m_random_device;
-  std::default_random_engine m_random_engine = std::default_random_engine(m_random_device());
+  std::default_random_engine m_random_engine{m_random_device()};
+  std::uniform_real_distribution<float> m_random_factor_uniform_distribution{0.0f, 1.0f};
+
+  float get_random_factor() { return m_random_factor_uniform_distribution(m_random_engine); }
+
+  // https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
+  glm::vec2 random_triangle_barycentric_coords() {
+    float u0 = get_random_factor();
+    float u1 = get_random_factor();
+    float su0 = std::sqrt(u0);
+    return glm::vec2(1 - su0, u1 * su0);
+  }
 
   // Init
   void init_glfw();
@@ -72,5 +88,8 @@ private:
   void on_load_stl_dialog_ok(const std::string &file_path);
 
   // Operations
-  void generate_points_on_surface();
+  // Points on surface
+  uint32_t m_points_on_surface_count = DEFAULT_POINT_ON_SURFACE_COUNT;
+  [[nodiscard]] std::vector<glm::vec3> generate_points_on_surface();
+  void on_generate_points_on_surface_button_click();
 };
