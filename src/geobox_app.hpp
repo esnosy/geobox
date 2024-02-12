@@ -46,8 +46,8 @@ private:
 
   float m_perspective_fov_degrees = 45.0f;
 
-  Orbit_Camera m_camera = Orbit_Camera(DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH,
-                                       DEFAULT_ORBIT_CAMERA_RADIUS, DEFAULT_ORBIT_CAMERA_ORIGIN);
+  Orbit_Camera m_camera{DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH, DEFAULT_ORBIT_CAMERA_RADIUS,
+                        DEFAULT_ORBIT_CAMERA_ORIGIN};
 
   float m_delta_time = 0.0f;      // Time between current frame and last frame
   float m_last_frame_time = 0.0f; // Time of last frame
