@@ -71,8 +71,11 @@ GeoBox_App::GeoBox_App() {
     shutdown();
     std::exit(-1);
   }
+
+  // Enable depth testing
   glEnable(GL_DEPTH_TEST);
 
+  // Set OpenGL viewport
   int width;
   int height;
   glfwGetFramebufferSize(m_window, &width, &height);
@@ -117,12 +120,12 @@ void GeoBox_App::init_glfw() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+  glfwWindowHint(GLFW_SAMPLES, NUM_ANTIALIASING_SAMPLES);
 
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-  glfwWindowHint(GLFW_SAMPLES, NUM_ANTIALIASING_SAMPLES);
   m_window = glfwCreateWindow(INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, WINDOW_TITLE, nullptr, nullptr);
   if (m_window == nullptr) {
     std::cerr << "Failed to create GLFW window" << std::endl;
