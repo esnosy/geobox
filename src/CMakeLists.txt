@@ -34,8 +34,8 @@ target_sources(geobox PRIVATE
     orbit_camera.hpp
     common.cpp
     common.hpp
-    mesh_object.cpp
-    mesh_object.hpp
+    indexed_triangle_mesh_object.cpp
+    indexed_triangle_mesh_object.hpp
     read_stl.cpp
     read_stl.hpp
     triangle.hpp

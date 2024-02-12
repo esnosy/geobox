@@ -248,7 +248,7 @@ void GeoBox_App::process_input() {
 
 std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
   std::vector<glm::vec3> points;
-  for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
+  for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
     const std::vector<glm::vec3> &vertices = object->get_vertices();
     const std::vector<unsigned int> &indices = object->get_indices();
     const std::vector<float> &triangle_areas = object->get_triangle_areas();
@@ -305,7 +305,7 @@ void GeoBox_App::render() {
   {
     auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
     auto normal_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat3>("normal_matrix");
-    for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
+    for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
       model_matrix_uniform_setter(object->get_model_matrix());
       normal_matrix_uniform_setter(object->get_normal_matrix());
       object->draw();
@@ -408,7 +408,7 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   }
 
   try {
-    auto object = std::make_shared<Mesh_Object>(triangles.value(), glm::mat4(1.0f));
+    auto object = std::make_shared<Indexed_Triangle_Mesh_Object>(triangles.value(), glm::mat4(1.0f));
     m_objects.push_back(object);
   } catch (const GeoBox_Error &error) {
     std::cerr << error.what() << std::endl;

@@ -9,7 +9,7 @@
 
 #include "bvh.hpp"
 #include "geobox_exceptions.hpp"
-#include "mesh_object.hpp"
+#include "indexed_triangle_mesh_object.hpp"
 #include "triangle.hpp"
 
 glm::vec3 closest_point_in_aabb(const glm::vec3 &point, const AABB &aabb) {
@@ -29,7 +29,7 @@ bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix)
+Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix)
     : m_model_matrix(model_matrix) {
   if (triangles.empty()) {
     throw GeoBox_Error("Empty mesh");
@@ -214,12 +214,12 @@ Mesh_Object::Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4
   }
 }
 
-void Mesh_Object::draw() const {
+void Indexed_Triangle_Mesh_Object::draw() const {
   glBindVertexArray(m_VAO);
   glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, nullptr);
 }
 
-Mesh_Object::~Mesh_Object() {
+Indexed_Triangle_Mesh_Object::~Indexed_Triangle_Mesh_Object() {
   glDeleteVertexArrays(1, &m_VAO);
   glDeleteBuffers(1, &m_vertex_positions_buffer_object);
   glDeleteBuffers(1, &m_vertex_normals_buffer_object);

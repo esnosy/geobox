@@ -7,7 +7,7 @@
 #include "bvh.hpp"
 #include "triangle.hpp"
 
-class Mesh_Object {
+class Indexed_Triangle_Mesh_Object {
 private:
   // GPU Mesh
   unsigned int m_VAO = 0;
@@ -33,11 +33,11 @@ public:
   // GPU memory is freed in destructor,
   // avoid double free by disabling copy constructor and copy assignment operator,
   // also known as the "Rule of three"
-  Mesh_Object(const Mesh_Object &) = delete;
-  Mesh_Object &operator=(const Mesh_Object &) = delete;
-  ~Mesh_Object();
+  Indexed_Triangle_Mesh_Object(const Indexed_Triangle_Mesh_Object &) = delete;
+  Indexed_Triangle_Mesh_Object &operator=(const Indexed_Triangle_Mesh_Object &) = delete;
+  ~Indexed_Triangle_Mesh_Object();
 
-  Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix);
+  Indexed_Triangle_Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix);
   void draw() const;
 
   [[nodiscard]] const glm::mat4 &get_model_matrix() const { return m_model_matrix; }

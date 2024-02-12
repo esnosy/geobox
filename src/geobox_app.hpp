@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "mesh_object.hpp"
+#include "indexed_triangle_mesh_object.hpp"
 #include "orbit_camera.hpp"
 #include "point_cloud_object.hpp"
 #include "shader.hpp"
@@ -42,7 +42,7 @@ private:
   std::shared_ptr<Shader> m_phong_shader;
   std::shared_ptr<Shader> m_point_cloud_shader;
 
-  std::vector<std::shared_ptr<Mesh_Object>> m_objects;
+  std::vector<std::shared_ptr<Indexed_Triangle_Mesh_Object>> m_objects;
   std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
 
   float m_perspective_fov_degrees = 45.0f;
