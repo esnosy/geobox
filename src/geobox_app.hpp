@@ -25,7 +25,7 @@ constexpr float DEFAULT_ORBIT_CAMERA_RADIUS = 1.0f;
 constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
 constexpr float DEFAULT_POINTS_ON_SURFACE_DENSITY = 1.0f;
-constexpr uint32_t DEFAULT_POINT_ON_SURFACE_COUNT = 100;
+constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
 class GeoBox_App {
 public:
@@ -90,7 +90,7 @@ private:
 
   // Operations
   // Points on surface
-  uint32_t m_points_on_surface_count = DEFAULT_POINT_ON_SURFACE_COUNT;
+  uint32_t m_points_on_surface_count = DEFAULT_POINTS_ON_SURFACE_COUNT;
   [[nodiscard]] std::vector<glm::vec3> generate_points_on_surface();
   void on_generate_points_on_surface_button_click();
 };
