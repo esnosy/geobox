@@ -17,10 +17,10 @@
 #include "point_cloud_object.hpp"
 #include "shader.hpp"
 
-constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
+constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION_RADIANS = 0.0f;
 // Azimuth is relative to +X, so we can make default value -pi/2 (-90 degrees) to make the default camera right vector
 // align with +X, since at 0 degrees the right vector aligns with +Y
-constexpr float DEFAULT_ORBIT_CAMERA_AZIMUTH = -1.0f * glm::half_pi<float>();
+constexpr float DEFAULT_ORBIT_CAMERA_AZIMUTH_RADIANS = -1.0f * glm::half_pi<float>();
 constexpr float DEFAULT_ORBIT_CAMERA_RADIUS = 1.0f;
 constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
@@ -48,8 +48,8 @@ private:
 
   float m_perspective_fov_degrees = DEFAULT_PERSPECTIVE_FOV_DEGREES;
 
-  Orbit_Camera m_camera{DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH, DEFAULT_ORBIT_CAMERA_RADIUS,
-                        DEFAULT_ORBIT_CAMERA_ORIGIN};
+  Orbit_Camera m_camera{DEFAULT_ORBIT_CAMERA_INCLINATION_RADIANS, DEFAULT_ORBIT_CAMERA_AZIMUTH_RADIANS,
+                        DEFAULT_ORBIT_CAMERA_RADIUS, DEFAULT_ORBIT_CAMERA_ORIGIN};
 
   float m_delta_time = 0.0f;      // Time between current frame and last frame
   float m_last_frame_time = 0.0f; // Time of last frame
