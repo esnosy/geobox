@@ -26,6 +26,8 @@ constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
 constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
+constexpr float DEFAULT_PERSPECTIVE_FOV_DEGREES = 45.0f;
+
 class GeoBox_App {
 public:
   GeoBox_App();
@@ -44,7 +46,7 @@ private:
   std::vector<std::shared_ptr<Indexed_Triangle_Mesh_Object>> m_objects;
   std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
 
-  float m_perspective_fov_degrees = 45.0f;
+  float m_perspective_fov_degrees = DEFAULT_PERSPECTIVE_FOV_DEGREES;
 
   Orbit_Camera m_camera{DEFAULT_ORBIT_CAMERA_INCLINATION, DEFAULT_ORBIT_CAMERA_AZIMUTH, DEFAULT_ORBIT_CAMERA_RADIUS,
                         DEFAULT_ORBIT_CAMERA_ORIGIN};
