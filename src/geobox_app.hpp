@@ -24,7 +24,6 @@ constexpr float DEFAULT_ORBIT_CAMERA_AZIMUTH = -1.0f * glm::half_pi<float>();
 constexpr float DEFAULT_ORBIT_CAMERA_RADIUS = 1.0f;
 constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
-constexpr float DEFAULT_POINTS_ON_SURFACE_DENSITY = 1.0f;
 constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
 class GeoBox_App {
