@@ -31,6 +31,7 @@
 #include "geobox_exceptions.hpp"
 #include "point_cloud_object.hpp"
 #include "read_stl.hpp"
+#include "shader.hpp"
 #include "triangle.hpp"
 
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
@@ -56,15 +57,6 @@ constexpr float MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER = 0.1f;
 constexpr int NUM_ANTIALIASING_SAMPLES = 8;
 
 constexpr float DEFAULT_POINT_SIZE = 6.0f;
-
-static std::optional<std::string> read_file_as_string(const std::string &file_path) {
-  std::ifstream ifs(file_path, std::ifstream::binary);
-  if (!ifs.is_open()) {
-    std::cerr << "Failed to open file: " << file_path << std::endl;
-    return {};
-  }
-  return std::string(std::istreambuf_iterator(ifs), {});
-}
 
 GeoBox_App::GeoBox_App() {
   init_glfw();
@@ -180,80 +172,14 @@ void GeoBox_App::init_imgui() {
   ImGui_ImplOpenGL3_Init();
 }
 
-static std::optional<unsigned int> load_shader_program(const std::string &vertex_source_path,
-                                                       const std::string &fragment_source_path) {
-  std::optional<std::string> vertex_shader_source = read_file_as_string(vertex_source_path);
-  if (!vertex_shader_source.has_value()) {
-    return {};
-  }
-  std::optional<std::string> fragment_shader_source = read_file_as_string(fragment_source_path);
-  if (!fragment_shader_source.has_value()) {
-    return {};
-  }
-
-  std::vector<char *> vertex_shader_sources = {vertex_shader_source->data()};
-  std::vector<char *> fragment_shader_sources = {fragment_shader_source->data()};
-  int success;
-
-  int max_info_log_length = 512;
-  int actual_info_log_length = 0;
-  std::vector<char> info_log(max_info_log_length);
-
-  unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertex_shader, (int)vertex_shader_sources.size(), vertex_shader_sources.data(), nullptr);
-  glCompileShader(vertex_shader);
-  glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(vertex_shader, max_info_log_length, &actual_info_log_length, info_log.data());
-    std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return {};
-  }
-
-  unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragment_shader, (int)fragment_shader_sources.size(), fragment_shader_sources.data(), nullptr);
-  glCompileShader(fragment_shader);
-  glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(fragment_shader, max_info_log_length, &actual_info_log_length, info_log.data());
-    std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return {};
-  }
-
-  unsigned int shader_program = glCreateProgram();
-  glAttachShader(shader_program, vertex_shader);
-  glAttachShader(shader_program, fragment_shader);
-  glLinkProgram(shader_program);
-  glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-  if (!success) {
-    glGetProgramInfoLog(shader_program, max_info_log_length, &actual_info_log_length, info_log.data());
-    std::cerr << "ERROR::SHADER::PROGRAM::LINK_FAILED\n"
-              << std::string(info_log.begin(), info_log.begin() + actual_info_log_length) << std::endl;
-    return {};
-  }
-
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
-
-  return shader_program;
-}
-
 bool GeoBox_App::init_shaders() {
-  std::optional<unsigned int> phong_shader_program =
-      load_shader_program("resources/shaders/phong.vert", "resources/shaders/phong.frag");
-  if (!phong_shader_program) {
+  try {
+    m_phong_shader = std::make_shared<Shader>("resources/shaders/phong.vert", "resources/shaders/phong.frag");
+    m_point_cloud_shader =
+        std::make_shared<Shader>("resources/shaders/point_cloud.vert", "resources/shaders/point_cloud.frag");
+  } catch (const GeoBox_Error &) {
     return false;
   }
-  std::optional<unsigned int> point_cloud_shader_program =
-      load_shader_program("resources/shaders/point_cloud.vert", "resources/shaders/point_cloud.frag");
-  if (!point_cloud_shader_program) {
-    return false;
-  }
-
-  m_default_shader_program = phong_shader_program.value();
-  m_point_cloud_shader_program = point_cloud_shader_program.value();
-
   return true;
 }
 
@@ -367,32 +293,23 @@ void GeoBox_App::render() {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glUseProgram(m_default_shader_program);
-
-  int object_color_uniform_location = glGetUniformLocation(m_default_shader_program, "object_color");
-  glUniform3f(object_color_uniform_location, 1.0f, 1.0f, 1.0f);
-
-  int light_color_uniform_location = glGetUniformLocation(m_default_shader_program, "light_color");
-  glUniform3f(light_color_uniform_location, 1.0f, 1.0f, 1.0f);
-
+  m_phong_shader->use();
+  m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
+  m_phong_shader->get_uniform_setter<glm::vec3>("light_color")({1.0f, 1.0f, 1.0f});
   glm::mat4 view = m_camera.get_view_matrix();
   glm::mat4 projection =
       glm::perspective(glm::radians(m_perspective_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
-
-  int view_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "view_matrix");
-  glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
-  int projection_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "projection_matrix");
-  glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
-
-  int camera_pos_uniform_location = glGetUniformLocation(m_default_shader_program, "camera_position");
-  glUniform3fv(camera_pos_uniform_location, 1, glm::value_ptr(m_camera.get_camera_pos()));
-
-  int model_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "model_matrix");
-  int normal_matrix_uniform_location = glGetUniformLocation(m_default_shader_program, "normal_matrix");
-  for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
-    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_model_matrix()));
-    glUniformMatrix3fv(normal_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(object->get_normal_matrix()));
-    object->draw();
+  m_phong_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
+  m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  m_phong_shader->get_uniform_setter<glm::vec3>("camera_position")(m_camera.get_camera_pos());
+  {
+    auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
+    auto normal_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat3>("normal_matrix");
+    for (const std::shared_ptr<Mesh_Object> &object : m_objects) {
+      model_matrix_uniform_setter(object->get_model_matrix());
+      normal_matrix_uniform_setter(object->get_normal_matrix());
+      object->draw();
+    }
   }
 
   int original_depth_func;
@@ -401,16 +318,15 @@ void GeoBox_App::render() {
   // points on that face will be visible
   // TODO: fancier point rendering
   glDepthFunc(GL_LEQUAL);
-  glUseProgram(m_point_cloud_shader_program);
-  view_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "view_matrix");
-  glUniformMatrix4fv(view_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(view));
-  projection_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "projection_matrix");
-  glUniformMatrix4fv(projection_matrix_uniform_location, 1, GL_FALSE, glm::value_ptr(projection));
-  model_matrix_uniform_location = glGetUniformLocation(m_point_cloud_shader_program, "model_matrix");
-  for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
-    glUniformMatrix4fv(model_matrix_uniform_location, 1, GL_FALSE,
-                       glm::value_ptr(point_cloud_object->get_model_matrix()));
-    point_cloud_object->draw();
+  m_point_cloud_shader->use();
+  m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
+  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  {
+    auto model_matrix_uniform_setter = m_point_cloud_shader->get_uniform_setter<glm::mat4>("model_matrix");
+    for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
+      model_matrix_uniform_setter(point_cloud_object->get_model_matrix());
+      point_cloud_object->draw();
+    }
   }
   glDepthFunc(original_depth_func);
 

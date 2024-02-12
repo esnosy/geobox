@@ -45,6 +45,8 @@ target_sources(geobox PRIVATE
     ray_aabb_intersection.hpp
     point_cloud_object.cpp
     point_cloud_object.hpp
+    shader.cpp
+    shader.hpp
 )
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)

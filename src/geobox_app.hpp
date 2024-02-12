@@ -15,6 +15,7 @@
 #include "mesh_object.hpp"
 #include "orbit_camera.hpp"
 #include "point_cloud_object.hpp"
+#include "shader.hpp"
 
 constexpr float DEFAULT_ORBIT_CAMERA_INCLINATION = 0.0f;
 // Azimuth is relative to +X, so we can make default value -pi/2 (-90 degrees) to make the default camera right vector
@@ -38,8 +39,8 @@ public:
 private:
   GLFWwindow *m_window = nullptr;
 
-  unsigned int m_default_shader_program = 0;
-  unsigned int m_point_cloud_shader_program = 0;
+  std::shared_ptr<Shader> m_phong_shader;
+  std::shared_ptr<Shader> m_point_cloud_shader;
 
   std::vector<std::shared_ptr<Mesh_Object>> m_objects;
   std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
