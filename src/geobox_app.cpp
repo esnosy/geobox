@@ -76,10 +76,15 @@ GeoBox_App::GeoBox_App() {
   glEnable(GL_DEPTH_TEST);
 
   // Set OpenGL viewport
-  int width;
-  int height;
-  glfwGetFramebufferSize(m_window, &width, &height);
-  glViewport(0, 0, width, height);
+  {
+    int width;
+    int height;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    if (width > 0 && height > 0) {
+      glViewport(0, 0, width, height);
+      m_perspective_projection.set_dimensions(width, height);
+    }
+  }
 
   // Enable anti-aliasing
   glEnable(GL_MULTISAMPLE);
@@ -186,8 +191,12 @@ bool GeoBox_App::init_shaders() {
   return true;
 }
 
-void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int height) {
-  glViewport(0, 0, width, height);
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  if (width > 0 && height > 0) {
+    glViewport(0, 0, width, height);
+    app->m_perspective_projection.set_dimensions(width, height);
+  }
 }
 
 void GeoBox_App::init_glfw_callbacks() {
@@ -286,13 +295,6 @@ void GeoBox_App::on_generate_points_on_surface_button_click() {
 }
 
 void GeoBox_App::render() {
-  int width;
-  int height;
-  glfwGetFramebufferSize(m_window, &width, &height);
-  if (width == 0 || height == 0) {
-    return;
-  }
-
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -300,10 +302,8 @@ void GeoBox_App::render() {
   m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
   m_phong_shader->get_uniform_setter<glm::vec3>("light_color")({1.0f, 1.0f, 1.0f});
   glm::mat4 view = m_camera.get_view_matrix();
-  glm::mat4 projection =
-      glm::perspective(glm::radians(m_perspective_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
   m_phong_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
-  m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(m_perspective_projection.get_matrix());
   m_phong_shader->get_uniform_setter<glm::vec3>("camera_position")(m_camera.get_camera_pos());
   {
     auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
@@ -323,7 +323,7 @@ void GeoBox_App::render() {
   glDepthFunc(GL_LEQUAL);
   m_point_cloud_shader->use();
   m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
-  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(m_perspective_projection.get_matrix());
   {
     auto model_matrix_uniform_setter = m_point_cloud_shader->get_uniform_setter<glm::mat4>("model_matrix");
     for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
