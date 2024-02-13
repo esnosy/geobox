@@ -36,4 +36,5 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(glm-0.9.9.8)
 set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
 
-add_subdirectory(stb_image)
+add_library(stb_image INTERFACE)
+target_include_directories(stb_image INTERFACE ${CMAKE_CURRENT_LIST_DIR}/stb_image)
