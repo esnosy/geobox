@@ -86,6 +86,10 @@ GeoBox_App::GeoBox_App() {
 
   // Set point size
   glPointSize(DEFAULT_POINT_SIZE);
+
+  // Enable polygon depth offset, useful for avoiding z-fighting in specific scenarios (e.g. rendering point cloud and
+  // wireframe overlays)
+  glEnable(GL_POLYGON_OFFSET_FILL);
 }
 
 void GeoBox_App::main_loop() {
@@ -305,6 +309,13 @@ void GeoBox_App::render() {
   m_phong_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
   m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
   m_phong_shader->get_uniform_setter<glm::vec3>("camera_position")(m_camera.get_camera_pos());
+
+  // Avoid z-fighting with point clouds by pushing polygon depth away a bit
+  float original_polygon_offset_factor;
+  float original_polygon_offset_units;
+  glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &original_polygon_offset_factor);
+  glGetFloatv(GL_POLYGON_OFFSET_UNITS, &original_polygon_offset_units);
+  glPolygonOffset(0.0f, 1.0f);
   {
     auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
     auto normal_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat3>("normal_matrix");
@@ -314,13 +325,9 @@ void GeoBox_App::render() {
       object->draw();
     }
   }
+  // Restore original polygon depth offset
+  glPolygonOffset(original_polygon_offset_factor, original_polygon_offset_units);
 
-  int original_depth_func;
-  glGetIntegerv(GL_DEPTH_FUNC, &original_depth_func);
-  // Set depth function to "less than or equal", so even if camera is parallel to a face,
-  // points on that face will be visible
-  // TODO: fancier point rendering
-  glDepthFunc(GL_LEQUAL);
   m_point_cloud_shader->use();
   m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
   m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
@@ -331,7 +338,6 @@ void GeoBox_App::render() {
       point_cloud_object->draw();
     }
   }
-  glDepthFunc(original_depth_func);
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
