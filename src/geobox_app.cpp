@@ -307,6 +307,61 @@ void GeoBox_App::on_generate_points_on_surface_button_click() {
   }
 }
 
+void GeoBox_App::draw_phong_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
+  m_phong_shader->use();
+  m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
+  m_phong_shader->get_uniform_setter<glm::vec3>("light_color")({1.0f, 1.0f, 1.0f});
+  m_phong_shader->get_uniform_setter<glm::vec3>("camera_position")(m_camera.get_camera_pos());
+  m_phong_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
+  m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
+  auto normal_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat3>("normal_matrix");
+
+  // Avoid z-fighting with point clouds and wireframes by pushing polygon depth away a bit,
+  // thankfully this does not affect GL_POINTS or GL_LINES (if we ever need to draw them while GL_OFFSET is more than
+  // one), however when GL_POLYGON_OFFSET_POINT or GL_POLYGON_OFFSET_LINE is enabled on some implementations, it will
+  // affect GL_POINTS, and I suppose GL_LINES, so we adhere to specification and push polygons and polygons in line and
+  // point mode away instead of pulling points/lines closer
+  //
+  // Note: polygons in line or point mode are not the same as lines and points according to OpenGL specification, (i.e.
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); glDrawArrays(GL_TRIANGLES, ...) vs glDrawArrays(GL_POINTS, ...))
+  float original_polygon_offset_factor;
+  float original_polygon_offset_units;
+  glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &original_polygon_offset_factor);
+  glGetFloatv(GL_POLYGON_OFFSET_UNITS, &original_polygon_offset_units);
+  glPolygonOffset(0.0f, 1.0f);
+  for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
+    model_matrix_uniform_setter(object->get_model_matrix());
+    normal_matrix_uniform_setter(object->get_normal_matrix());
+    object->draw();
+  }
+  // Restore original polygon depth offset
+  glPolygonOffset(original_polygon_offset_factor, original_polygon_offset_units);
+}
+
+void GeoBox_App::draw_flat_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
+  m_point_cloud_shader->use();
+  m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
+  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  auto model_matrix_uniform_setter = m_point_cloud_shader->get_uniform_setter<glm::mat4>("model_matrix");
+
+  // Draw wireframes
+  int original_polygon_mode;
+  glGetIntegerv(GL_POLYGON_MODE, &original_polygon_mode);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
+    model_matrix_uniform_setter(object->get_model_matrix());
+    object->draw();
+  }
+  glPolygonMode(GL_FRONT_AND_BACK, original_polygon_mode);
+
+  // Draw point clouds
+  for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
+    model_matrix_uniform_setter(point_cloud_object->get_model_matrix());
+    point_cloud_object->draw();
+  }
+}
+
 void GeoBox_App::render() {
   int width;
   int height;
@@ -318,44 +373,12 @@ void GeoBox_App::render() {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  m_phong_shader->use();
-  m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
-  m_phong_shader->get_uniform_setter<glm::vec3>("light_color")({1.0f, 1.0f, 1.0f});
   glm::mat4 view = m_camera.get_view_matrix();
   glm::mat4 projection =
       glm::perspective(glm::radians(m_perspective_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
-  m_phong_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
-  m_phong_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
-  m_phong_shader->get_uniform_setter<glm::vec3>("camera_position")(m_camera.get_camera_pos());
 
-  // Avoid z-fighting with point clouds by pushing polygon depth away a bit
-  float original_polygon_offset_factor;
-  float original_polygon_offset_units;
-  glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &original_polygon_offset_factor);
-  glGetFloatv(GL_POLYGON_OFFSET_UNITS, &original_polygon_offset_units);
-  glPolygonOffset(0.0f, 1.0f);
-  {
-    auto model_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat4>("model_matrix");
-    auto normal_matrix_uniform_setter = m_phong_shader->get_uniform_setter<glm::mat3>("normal_matrix");
-    for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
-      model_matrix_uniform_setter(object->get_model_matrix());
-      normal_matrix_uniform_setter(object->get_normal_matrix());
-      object->draw();
-    }
-  }
-  // Restore original polygon depth offset
-  glPolygonOffset(original_polygon_offset_factor, original_polygon_offset_units);
-
-  m_point_cloud_shader->use();
-  m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
-  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
-  {
-    auto model_matrix_uniform_setter = m_point_cloud_shader->get_uniform_setter<glm::mat4>("model_matrix");
-    for (const std::shared_ptr<Point_Cloud_Object> &point_cloud_object : m_point_cloud_objects) {
-      model_matrix_uniform_setter(point_cloud_object->get_model_matrix());
-      point_cloud_object->draw();
-    }
-  }
+  draw_phong_shaded_objects(view, projection);
+  draw_flat_shaded_objects(view, projection);
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();

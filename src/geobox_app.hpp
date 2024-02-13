@@ -118,6 +118,10 @@ private:
   void render();
   static void shutdown();
 
+  // Rendering
+  void draw_phong_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const;
+  void draw_flat_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const;
+
   // Dialogs
   void on_load_stl_dialog_ok(const std::string &file_path);
 
