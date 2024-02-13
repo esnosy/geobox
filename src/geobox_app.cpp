@@ -209,7 +209,6 @@ void key_callback(GLFWwindow *window, int key, int /*scancode*/, int action, int
 }
 
 void GeoBox_App::init_glfw_callbacks() {
-  // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
   glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
   glfwSetKeyCallback(m_window, (GLFWkeyfun)key_callback);
 }
