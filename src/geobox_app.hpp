@@ -2,9 +2,11 @@
 
 #include <cmath> // for std::sqrt
 #include <cstdint>
-#include <memory> // for std::shared_ptr
+#include <functional> // for std::function
+#include <memory>     // for std::shared_ptr
 #include <optional>
 #include <random>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -27,6 +29,11 @@ constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
 constexpr float DEFAULT_PERSPECTIVE_FOV_DEGREES = 45.0f;
+
+struct Undo_Redo_Entry {
+  std::function<void()> undo;
+  std::function<void()> redo;
+};
 
 class GeoBox_App {
 public:
@@ -56,6 +63,30 @@ private:
 
   std::optional<glm::vec2> m_last_mouse_pos;
 
+  // Undo-Redo
+  std::stack<Undo_Redo_Entry> m_undo_stack;
+  std::stack<Undo_Redo_Entry> m_redo_stack;
+
+  void undo() {
+    if (m_undo_stack.empty()) {
+      return;
+    }
+    const Undo_Redo_Entry &entry = m_undo_stack.top();
+    entry.undo();
+    m_redo_stack.push(entry);
+    m_undo_stack.pop();
+  }
+
+  void redo() {
+    if (m_redo_stack.empty()) {
+      return;
+    }
+    const Undo_Redo_Entry &entry = m_redo_stack.top();
+    entry.redo();
+    m_undo_stack.push(entry);
+    m_redo_stack.pop();
+  }
+
   // Randomness
   std::random_device m_random_device;
   std::default_random_engine m_random_engine{m_random_device()};
@@ -80,6 +111,7 @@ private:
 
   // Callbacks
   friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
+  friend void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
   // Main-loop internals
   void process_input();

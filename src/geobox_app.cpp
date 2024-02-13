@@ -1,3 +1,4 @@
+#include <algorithm> // for std::erase
 #include <cmath>
 #include <cstdint>
 #include <cstdlib> // for std::exit
@@ -194,9 +195,23 @@ void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int hei
   glViewport(0, 0, width, height);
 }
 
+void key_callback(GLFWwindow *window, int key, int /*scancode*/, int action, int mods) {
+  if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureKeyboard)
+    return;
+  auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
+  if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
+    if (mods & GLFW_MOD_SHIFT) {
+      app->redo();
+    } else {
+      app->undo();
+    }
+  }
+}
+
 void GeoBox_App::init_glfw_callbacks() {
   // Using methods as callbacks: https://stackoverflow.com/a/28660673/8094047
   glfwSetFramebufferSizeCallback(m_window, (GLFWframebuffersizefun)framebuffer_size_callback);
+  glfwSetKeyCallback(m_window, (GLFWkeyfun)key_callback);
 }
 
 void GeoBox_App::process_input() {
@@ -284,6 +299,10 @@ void GeoBox_App::on_generate_points_on_surface_button_click() {
   try {
     auto point_cloud_object = std::make_shared<Point_Cloud_Object>(points, glm::mat4(1.0f));
     m_point_cloud_objects.push_back(point_cloud_object);
+    m_undo_stack.emplace(
+        [point_cloud_object, this]() { std::erase(m_point_cloud_objects, point_cloud_object); }, // Undo
+        [point_cloud_object, this]() { m_point_cloud_objects.push_back(point_cloud_object); }    // Redo
+    );
   } catch (const GeoBox_Error &error) {
     std::cerr << error.what() << std::endl;
   }
@@ -419,6 +438,9 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
   try {
     auto object = std::make_shared<Indexed_Triangle_Mesh_Object>(triangles.value(), glm::mat4(1.0f));
     m_objects.push_back(object);
+    m_undo_stack.emplace([object, this]() { std::erase(m_objects, object); }, // Undo
+                         [object, this]() { m_objects.push_back(object); }    // Redo
+    );
   } catch (const GeoBox_Error &error) {
     std::cerr << error.what() << std::endl;
     std::cerr << "Failed to create object" << std::endl;
