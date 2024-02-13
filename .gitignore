@@ -3,4 +3,5 @@
 /.vscode/
 # Build folders
 /cmake-build-*/
-/build_*/
+/build_*_*/
+/build/
