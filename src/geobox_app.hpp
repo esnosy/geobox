@@ -26,52 +26,7 @@ constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
 constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
-class Perspective_Projection {
-private:
-  glm::mat4 m_matrix;
-  float m_fov_degrees = 45.0f;
-  float m_aspect_ratio = 1.0f;
-  float m_near = 0.01f;
-  float m_far = 1000.0f;
-  bool m_needs_update = true;
-
-  void update() { m_matrix = glm::perspective(glm::radians(m_fov_degrees), m_aspect_ratio, m_near, m_far); }
-
-public:
-  void set_fov_degrees(float fov_degrees) {
-    m_fov_degrees = fov_degrees;
-    m_needs_update = true;
-  }
-
-  float get_fov_degrees() const { return m_fov_degrees; };
-
-  void set_dimensions(int width, int height) {
-    m_aspect_ratio = (float)width / (float)height;
-    m_needs_update = true;
-  }
-
-  void set_near(float near) {
-    m_near = near;
-    m_needs_update = true;
-  }
-
-  float get_near() const { return m_near; }
-
-  void set_far(float far) {
-    m_far = far;
-    m_needs_update = true;
-  }
-
-  float get_far() const { return m_far; }
-
-  const glm::mat4 &get_matrix() {
-    if (m_needs_update) {
-      update();
-      m_needs_update = false;
-    }
-    return m_matrix;
-  }
-};
+constexpr float DEFAULT_PERSPECTIVE_FOV_DEGREES = 45.0f;
 
 class GeoBox_App {
 public:
@@ -91,7 +46,7 @@ private:
   std::vector<std::shared_ptr<Indexed_Triangle_Mesh_Object>> m_objects;
   std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;
 
-  Perspective_Projection m_perspective_projection;
+  float m_perspective_fov_degrees = DEFAULT_PERSPECTIVE_FOV_DEGREES;
 
   Orbit_Camera m_camera{DEFAULT_ORBIT_CAMERA_INCLINATION_RADIANS, DEFAULT_ORBIT_CAMERA_AZIMUTH_RADIANS,
                         DEFAULT_ORBIT_CAMERA_RADIUS, DEFAULT_ORBIT_CAMERA_ORIGIN};
@@ -124,7 +79,7 @@ private:
   bool init_shaders();
 
   // Callbacks
-  friend void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+  friend void framebuffer_size_callback(const GLFWwindow *window, int width, int height);
 
   // Main-loop internals
   void process_input();
