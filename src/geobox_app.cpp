@@ -267,8 +267,22 @@ void GeoBox_App::process_input() {
                   camera_orbit_origin_offset);
 }
 
+// https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
+static glm::vec2 random_triangle_barycentric_coords_transform(float u0, float u1) {
+  assert(u0 >= 0.0f && u0 <= 1.0f);
+  assert(u1 >= 0.0f && u1 <= 1.0f);
+  float su0 = std::sqrt(u0);
+  return glm::vec2(1 - su0, u1 * su0);
+}
+
 std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
   std::vector<glm::vec3> points;
+
+  Random_Generator<std::random_device, std::default_random_engine, std::uniform_real_distribution<float>> u0_gen(
+      m_random_device, std::uniform_real_distribution(0.0f, 1.0f));
+  Random_Generator<std::random_device, std::default_random_engine, std::uniform_real_distribution<float>> u1_gen(
+      m_random_device, std::uniform_real_distribution(0.0f, 1.0f));
+
   for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
     const std::vector<glm::vec3> &vertices = object->get_vertices();
     const std::vector<unsigned int> &indices = object->get_indices();
@@ -276,16 +290,17 @@ std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
     // Pick a triangle randomly
     assert(indices.size() > 0);
     assert(indices.size() % 3 == 0);
-    std::discrete_distribution<size_t> random_index_distribution(triangle_areas.begin(), triangle_areas.end());
+    Random_Generator<std::random_device, std::default_random_engine, std::discrete_distribution<size_t>>
+        random_index_generator(m_random_device, {triangle_areas.begin(), triangle_areas.end()});
     // Sample points
     for (uint32_t i = 0; i < m_points_on_surface_count; i++) {
-      size_t triangle_index = random_index_distribution(m_random_engine);
+      size_t triangle_index = random_index_generator.generate();
       const glm::vec3 &a = vertices[indices[triangle_index * 3 + 0]];
       const glm::vec3 &b = vertices[indices[triangle_index * 3 + 1]];
       const glm::vec3 &c = vertices[indices[triangle_index * 3 + 2]];
       glm::vec3 ab = b - a;
       glm::vec3 ac = c - a;
-      glm::vec2 uv = random_triangle_barycentric_coords();
+      glm::vec2 uv = random_triangle_barycentric_coords_transform(u0_gen.generate(), u1_gen.generate());
       glm::vec3 p = ab * uv.x + ac * uv.y + a;
       points.push_back(p);
     }

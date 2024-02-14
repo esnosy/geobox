@@ -35,6 +35,18 @@ struct Undo_Redo_Entry {
   std::function<void()> redo;
 };
 
+template <typename Random_Device_Type, typename Random_Engine_Type, typename Distribution_Type> class Random_Generator {
+private:
+  Random_Engine_Type m_random_engine;
+  Distribution_Type m_distribution;
+
+public:
+  Random_Generator(Random_Device_Type &random_device, const Distribution_Type &distribution)
+      : m_random_engine(random_device()), m_distribution(distribution) {}
+
+  auto generate() { return m_distribution(m_random_engine); }
+};
+
 class GeoBox_App {
 public:
   GeoBox_App();
@@ -89,18 +101,6 @@ private:
 
   // Randomness
   std::random_device m_random_device;
-  std::default_random_engine m_random_engine{m_random_device()};
-  std::uniform_real_distribution<float> m_random_factor_uniform_distribution{0.0f, 1.0f};
-
-  float get_random_factor() { return m_random_factor_uniform_distribution(m_random_engine); }
-
-  // https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
-  glm::vec2 random_triangle_barycentric_coords() {
-    float u0 = get_random_factor();
-    float u1 = get_random_factor();
-    float su0 = std::sqrt(u0);
-    return glm::vec2(1 - su0, u1 * su0);
-  }
 
   // Init
   void init_glfw();
