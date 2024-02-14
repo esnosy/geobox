@@ -322,7 +322,7 @@ void GeoBox_App::on_generate_points_on_surface_button_click() {
   }
 }
 
-void GeoBox_App::draw_phong_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
+void GeoBox_App::draw_phong_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
   m_phong_shader->use();
   m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
   m_phong_shader->get_uniform_setter<glm::vec3>("light_color")({1.0f, 1.0f, 1.0f});
@@ -354,7 +354,7 @@ void GeoBox_App::draw_phong_shaded_objects(const glm::mat4 &view, const glm::mat
   glPolygonOffset(original_polygon_offset_factor, original_polygon_offset_units);
 }
 
-void GeoBox_App::draw_flat_shaded_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
+void GeoBox_App::draw_unlit_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
   m_point_cloud_shader->use();
   m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
   m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
@@ -392,8 +392,8 @@ void GeoBox_App::render() {
   glm::mat4 projection =
       glm::perspective(glm::radians(m_perspective_fov_degrees), (float)width / (float)height, 0.01f, 1000.0f);
 
-  draw_phong_shaded_objects(view, projection);
-  draw_flat_shaded_objects(view, projection);
+  draw_phong_objects(view, projection);
+  draw_unlit_objects(view, projection);
 
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
