@@ -183,8 +183,7 @@ void GeoBox_App::init_imgui() {
 bool GeoBox_App::init_shaders() {
   try {
     m_phong_shader = std::make_shared<Shader>("resources/shaders/phong.vert", "resources/shaders/phong.frag");
-    m_point_cloud_shader =
-        std::make_shared<Shader>("resources/shaders/point_cloud.vert", "resources/shaders/point_cloud.frag");
+    m_point_cloud_shader = std::make_shared<Shader>("resources/shaders/unlit.vert", "resources/shaders/unlit.frag");
   } catch (const GeoBox_Error &) {
     return false;
   }
