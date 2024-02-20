@@ -1,15 +1,10 @@
-#include <algorithm> // for std::erase
 #include <cmath>
-#include <cstdint>
 #include <cstdlib> // for std::exit
 #include <format>
-#include <fstream>
 #include <iostream>
-#include <limits>
 #include <optional>
 #include <random> // for std::discrete_distribution
 #include <string>
-#include <utility>
 #include <vector>
 
 #define GLFW_INCLUDE_NONE
@@ -24,10 +19,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/io.hpp>
 
-#include "bvh.hpp"
 #include "geobox_app.hpp"
 #include "geobox_exceptions.hpp"
 #include "point_cloud_object.hpp"

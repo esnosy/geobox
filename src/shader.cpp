@@ -7,9 +7,6 @@
 
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/mat3x3.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
 
 #include "geobox_exceptions.hpp"
 #include "shader.hpp"

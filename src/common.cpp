@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "common.hpp"
 
 bool is_close(float a, float b) {

@@ -1,10 +1,7 @@
 #include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
 #include <cstdlib>   // for std::malloc, std::free, std::abort and std::abs
-#include <functional>
-#include <iostream>
-#include <limits> // for std::numeric_limits
+#include <limits>    // for std::numeric_limits
 #include <stack>
-#include <tuple>   // for std::tie
 #include <utility> // for std::as_const
 #include <vector>
 
@@ -12,7 +9,6 @@
 #include <glm/gtx/norm.hpp>
 
 #include "bvh.hpp"
-#include "common.hpp"
 #include "geobox_exceptions.hpp"
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }

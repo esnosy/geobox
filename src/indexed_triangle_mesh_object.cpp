@@ -29,7 +29,8 @@ bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 
-Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Triangle> &triangles, const glm::mat4 &model_matrix)
+Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Triangle> &triangles,
+                                                           const glm::mat4 &model_matrix)
     : m_model_matrix(model_matrix) {
   if (triangles.empty()) {
     throw GeoBox_Error("Empty mesh");

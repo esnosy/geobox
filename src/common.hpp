@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <glm/vec3.hpp>
 
 bool is_close(float a, float b);

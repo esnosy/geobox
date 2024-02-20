@@ -1,6 +1,5 @@
 #include <algorithm> // for std::min and std::max
 #include <cassert>
-#include <cstdlib> // for std::abort and std::abs
 #include <iostream>
 #include <vector>
 

@@ -1,10 +1,7 @@
-#include <cstddef>  // for std::size_t
-#include <cstdint>  // for uint16_t, uint32_t, etc...
 #include <fstream>  // for std::ifstream
 #include <iostream> // for std::cerr, std::endl, etc...
 #include <optional>
 #include <string>
-#include <utility> // for std::as_const
 #include <vector>
 
 #include "triangle.hpp"
