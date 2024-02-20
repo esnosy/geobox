@@ -60,7 +60,7 @@ private:
   GLFWwindow *m_window = nullptr;
 
   std::shared_ptr<Shader> m_phong_shader;
-  std::shared_ptr<Shader> m_point_cloud_shader;
+  std::shared_ptr<Shader> m_unlit_shader;
 
   std::vector<std::shared_ptr<Indexed_Triangle_Mesh_Object>> m_objects;
   std::vector<std::shared_ptr<Point_Cloud_Object>> m_point_cloud_objects;

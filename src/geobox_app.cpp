@@ -175,7 +175,7 @@ void GeoBox_App::init_imgui() {
 bool GeoBox_App::init_shaders() {
   try {
     m_phong_shader = std::make_shared<Shader>("resources/shaders/phong.vert", "resources/shaders/phong.frag");
-    m_point_cloud_shader = std::make_shared<Shader>("resources/shaders/unlit.vert", "resources/shaders/unlit.frag");
+    m_unlit_shader = std::make_shared<Shader>("resources/shaders/unlit.vert", "resources/shaders/unlit.frag");
   } catch (const GeoBox_Error &) {
     return false;
   }
@@ -346,10 +346,10 @@ void GeoBox_App::draw_phong_objects(const glm::mat4 &view, const glm::mat4 &proj
 }
 
 void GeoBox_App::draw_unlit_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
-  m_point_cloud_shader->use();
-  m_point_cloud_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
-  m_point_cloud_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
-  auto model_matrix_uniform_setter = m_point_cloud_shader->get_uniform_setter<glm::mat4>("model_matrix");
+  m_unlit_shader->use();
+  m_unlit_shader->get_uniform_setter<glm::mat4>("view_matrix")(view);
+  m_unlit_shader->get_uniform_setter<glm::mat4>("projection_matrix")(projection);
+  auto model_matrix_uniform_setter = m_unlit_shader->get_uniform_setter<glm::mat4>("model_matrix");
 
   // Draw wireframes
   int original_polygon_mode;
