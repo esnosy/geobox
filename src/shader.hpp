@@ -17,5 +17,5 @@ public:
   Shader(const std::string &vertex_source_path, const std::string &fragment_source_path);
   ~Shader();
   void use() const;
-  template <typename T> std::function<void(const T &)> get_uniform_setter(std::string_view uniform_name);
+  template <typename T> [[nodiscard]] std::function<void(const T &)> get_uniform_setter(std::string_view uniform_name);
 };
