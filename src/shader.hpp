@@ -7,7 +7,7 @@
 class Shader {
 private:
   unsigned int m_shader_program;
-  int get_uniform_location(std::string_view uniform_name) const;
+  [[nodiscard]] int get_uniform_location(std::string_view uniform_name) const;
 
 public:
   // Disable copy
