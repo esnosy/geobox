@@ -2,5 +2,5 @@
 
 #include <glm/vec3.hpp>
 
-bool is_close(float a, float b);
-bool is_close(const glm::vec3 &a, const glm::vec3 &b);
+[[nodiscard]] bool is_close(float a, float b);
+[[nodiscard]] bool is_close(const glm::vec3 &a, const glm::vec3 &b);

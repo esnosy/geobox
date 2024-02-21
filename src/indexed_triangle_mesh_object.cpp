@@ -12,11 +12,11 @@
 #include "indexed_triangle_mesh_object.hpp"
 #include "triangle.hpp"
 
-glm::vec3 closest_point_in_aabb(const glm::vec3 &point, const AABB &aabb) {
+[[nodiscard]] static glm::vec3 closest_point_in_aabb(const glm::vec3 &point, const AABB &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
 }
 
-float point_aabb_distance_squared(const glm::vec3 &point, const AABB &aabb) {
+[[nodiscard]] static float point_aabb_distance_squared(const glm::vec3 &point, const AABB &aabb) {
   return glm::distance2(point, closest_point_in_aabb(point, aabb));
 }
 
@@ -25,7 +25,7 @@ struct Sphere {
   float radius;
 };
 
-bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
+[[nodiscard]] static bool sphere_aabb_intersection(const Sphere &sphere, const AABB &aabb) {
   return point_aabb_distance_squared(sphere.center, aabb) <= (sphere.radius * sphere.radius);
 }
 

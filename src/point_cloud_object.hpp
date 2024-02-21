@@ -23,7 +23,7 @@ public:
   Point_Cloud_Object(const std::vector<glm::vec3> &points, const glm::mat4 &model_matrix);
   void draw() const;
 
-  const std::vector<glm::vec3> &get_points() const { return m_points; }
+  [[nodiscard]] const std::vector<glm::vec3> &get_points() const { return m_points; }
 
-  const glm::mat4 &get_model_matrix() const { return m_model_matrix; }
+  [[nodiscard]] const glm::mat4 &get_model_matrix() const { return m_model_matrix; }
 };

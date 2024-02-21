@@ -259,7 +259,7 @@ void GeoBox_App::process_input() {
 }
 
 // https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
-static glm::vec2 random_triangle_barycentric_coords_transform(float u0, float u1) {
+[[nodiscard]] static glm::vec2 random_triangle_barycentric_coords_transform(float u0, float u1) {
   assert(u0 >= 0.0f && u0 <= 1.0f);
   assert(u1 >= 0.0f && u1 <= 1.0f);
   float su0 = std::sqrt(u0);

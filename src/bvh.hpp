@@ -27,7 +27,7 @@ private:
   Node *m_current_free_node = nullptr;
   Node *m_pre_allocated_nodes = nullptr;
   Node *m_root = nullptr;
-  Node *new_node();
+  [[nodiscard]] Node *new_node();
   template <typename Callback_Type, typename AABB_Filter_Type>
   void foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const;
   void foreach_leaf_node(const std::function<void(const Node *)> &callback,

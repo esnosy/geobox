@@ -13,8 +13,8 @@
 
 BVH::Node *BVH::new_node() { return m_current_free_node++; }
 
-static AABB calc_aabb_indirect(const std::vector<AABB> &bounding_boxes, const unsigned int *first,
-                               const unsigned int *last) {
+[[nodiscard]] static AABB calc_aabb_indirect(const std::vector<AABB> &bounding_boxes, const unsigned int *first,
+                                             const unsigned int *last) {
   AABB aabb = bounding_boxes[*first];
   for (const unsigned int *i = first; i <= last; i++) {
     aabb.min = glm::min(aabb.min, bounding_boxes[*i].min);

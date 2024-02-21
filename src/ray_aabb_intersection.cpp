@@ -9,11 +9,13 @@
 #include "common.hpp"
 #include "ray.hpp"
 
-static float min_component(const glm::vec3 &v) { return std::min(v.x, std::min(v.y, v.z)); }
+[[nodiscard]] static float min_component(const glm::vec3 &v) { return std::min(v.x, std::min(v.y, v.z)); }
 
-static float max_component(const glm::vec3 &v) { return std::max(v.x, std::min(v.y, v.z)); }
+[[nodiscard]] static float max_component(const glm::vec3 &v) { return std::max(v.x, std::min(v.y, v.z)); }
 
-static bool is_not_all_zeros(const glm::vec3 &v) { return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0))); }
+[[nodiscard]] static bool is_not_all_zeros(const glm::vec3 &v) {
+  return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0)));
+}
 
 float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   assert(is_not_all_zeros(ray.direction));
