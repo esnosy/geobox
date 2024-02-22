@@ -1,6 +1,5 @@
 #include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
 #include <cstdlib>   // for std::malloc, std::free, std::abort and std::abs
-#include <limits>    // for std::numeric_limits
 #include <stack>
 #include <utility> // for std::as_const
 #include <vector>
@@ -78,9 +77,6 @@ BVH::BVH(const std::vector<AABB> &bounding_boxes) {
 
     // Calculate variance
     auto num_primitives_as_float = static_cast<float>(node->num_primitives());
-    if (num_primitives_as_float > std::numeric_limits<float>::max()) {
-      throw Overflow_Check_Error("Too many primitives for variance calculation, aborting BVH build");
-    }
     glm::vec3 mean_of_squares(0);
     glm::vec3 mean(0);
     for (const unsigned int *i = node->first; i <= node->last; i++) {

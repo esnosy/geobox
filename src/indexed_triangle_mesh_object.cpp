@@ -111,10 +111,6 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
   // Pre-calculate number of triangles per vertex (can be used later for weighting normals)
   std::vector<float> num_triangles_per_vertex(unique_vertices.size(), 0.0f);
   for (unsigned int vi : indices) {
-    if (num_triangles_per_vertex[vi] == std::numeric_limits<float>::max()) {
-      throw Overflow_Check_Error(
-          "Number of triangles per vertex exceeds maximum value of a float, aborting vertex normals calculation");
-    }
     num_triangles_per_vertex[vi] += 1;
   }
 
