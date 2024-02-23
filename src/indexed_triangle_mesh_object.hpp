@@ -24,8 +24,8 @@ private:
   std::vector<glm::vec3> m_vertex_normals;
   std::vector<float> m_triangle_areas;
 
-  glm::mat4 m_model_matrix;
-  glm::mat3 m_normal_matrix;
+  glm::mat4 m_model_matrix{1.0f};
+  glm::mat3 m_normal_matrix{1.0f};
 
   std::shared_ptr<BVH> m_triangles_bvh;
 

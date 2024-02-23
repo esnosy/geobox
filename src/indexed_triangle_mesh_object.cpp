@@ -30,12 +30,12 @@ struct Sphere {
 }
 
 Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Triangle> &triangles,
-                                                           const glm::mat4 &model_matrix)
-    : m_model_matrix(model_matrix) {
+                                                           const glm::mat4 &model_matrix) {
   if (triangles.empty()) {
     throw GeoBox_Error("Empty mesh");
   }
 
+  m_model_matrix = model_matrix;
   m_normal_matrix = glm::transpose(glm::inverse(model_matrix));
 
   size_t num_vertices = triangles.size() * 3;
@@ -44,9 +44,10 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
   vertices_as_bounding_boxes.reserve(num_vertices);
   for (const Triangle &triangle : triangles) {
     for (const glm::vec3 &v : triangle.vertices) {
-      AABB aabb;
-      aabb.min = v;
-      aabb.max = v;
+      AABB aabb{
+          .min = v,
+          .max = v,
+      };
       vertices_as_bounding_boxes.push_back(aabb);
     }
   }
@@ -185,9 +186,10 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
     const glm::vec3 &a = unique_vertices[indices[i + 0]];
     const glm::vec3 &b = unique_vertices[indices[i + 1]];
     const glm::vec3 &c = unique_vertices[indices[i + 2]];
-    AABB aabb;
-    aabb.min = glm::min(a, glm::min(b, c));
-    aabb.max = glm::max(a, glm::max(b, c));
+    AABB aabb{
+        .min = glm::min(a, glm::min(b, c)),
+        .max = glm::max(a, glm::max(b, c)),
+    };
     triangle_bounding_boxes.push_back(aabb);
   }
 

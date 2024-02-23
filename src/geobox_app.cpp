@@ -263,7 +263,7 @@ void GeoBox_App::process_input() {
   assert(u0 >= 0.0f && u0 <= 1.0f);
   assert(u1 >= 0.0f && u1 <= 1.0f);
   float su0 = std::sqrt(u0);
-  return glm::vec2(1 - su0, u1 * su0);
+  return {1 - su0, u1 * su0};
 }
 
 std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
@@ -279,7 +279,7 @@ std::vector<glm::vec3> GeoBox_App::generate_points_on_surface() {
     const std::vector<unsigned int> &indices = object->get_indices();
     const std::vector<float> &triangle_areas = object->get_triangle_areas();
     // Pick a triangle randomly
-    assert(indices.size() > 0);
+    assert(!indices.empty());
     assert(indices.size() % 3 == 0);
     Random_Generator<std::random_device, std::default_random_engine, std::discrete_distribution<size_t>>
         random_index_generator(m_random_device, {triangle_areas.begin(), triangle_areas.end()});

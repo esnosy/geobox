@@ -8,9 +8,9 @@
 class Point_Cloud_Object {
 private:
   std::vector<glm::vec3> m_points;
-  glm::mat4 m_model_matrix;
-  unsigned int m_VAO;
-  unsigned int m_VBO;
+  glm::mat4 m_model_matrix{1.0f};
+  unsigned int m_VAO = 0;
+  unsigned int m_VBO = 0;
 
 public:
   // GPU memory is freed in destructor,
