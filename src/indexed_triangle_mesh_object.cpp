@@ -68,7 +68,7 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
   unique_vertices.reserve(num_vertices);
 
   auto get_ith_vertex = [&triangles](unsigned int i) -> const glm::vec3 & {
-    auto div = std::div(i, 3);
+    auto div = std::ldiv(i, 3);
     size_t triangle_index = div.quot;
     assert(triangle_index >= 0 && triangle_index < triangles.size());
     size_t vertex_index_in_triangle = div.rem;
