@@ -20,6 +20,8 @@ if(ENABLE_SUPERLUMINAL_PERF_API)
     set(CMAKE_MODULE_PATH "C:\\Program Files\\Superluminal\\Performance\\API" ${CMAKE_MODULE_PATH})
     find_package(SuperluminalAPI REQUIRED)
     target_link_libraries(geobox PRIVATE SuperluminalAPI)
+    # We intent here to define ENABLE_SUPERLUMINAL_PERF_API and not its value (ON or OFF), ofcourse,
+    # thankfully this is how CMake behaves as of CMake 3.28.3 with 3.16 specified as the minimum version required.
     target_compile_definitions(geobox PRIVATE ENABLE_SUPERLUMINAL_PERF_API)
 endif()
 
