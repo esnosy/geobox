@@ -21,7 +21,7 @@ if(ENABLE_SUPERLUMINAL_PERF_API)
     set(CMAKE_MODULE_PATH ${SUPERLUMINAL_PERF_API_DIR} ${CMAKE_MODULE_PATH})
     find_package(SuperluminalAPI REQUIRED)
     target_link_libraries(geobox PRIVATE SuperluminalAPI)
-    # We intent here to define ENABLE_SUPERLUMINAL_PERF_API and not its value (ON or OFF), ofcourse,
+    # We intent here to define ENABLE_SUPERLUMINAL_PERF_API and not its value (ON or OFF),
     # thankfully this is how CMake behaves as of CMake 3.28.3 with 3.16 specified as the minimum version required.
     target_compile_definitions(geobox PRIVATE ENABLE_SUPERLUMINAL_PERF_API)
 endif()
