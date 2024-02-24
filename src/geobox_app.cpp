@@ -451,7 +451,6 @@ void GeoBox_App::shutdown() {
 
 void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
-  PerformanceAPI_BeginEvent(__FUNCTION__, nullptr, PERFORMANCEAPI_DEFAULT_COLOR);
   PERFORMANCEAPI_INSTRUMENT_FUNCTION();
 #endif
   std::optional<std::vector<Triangle>> triangles = read_stl_mesh_file(file_path);
@@ -474,8 +473,4 @@ void GeoBox_App::on_load_stl_dialog_ok(const std::string &file_path) {
     std::cerr << error.what() << std::endl;
     std::cerr << "Failed to create object" << std::endl;
   }
-
-#ifdef ENABLE_SUPERLUMINAL_PERF_API
-  PerformanceAPI_EndEvent();
-#endif
 }
