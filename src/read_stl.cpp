@@ -8,16 +8,6 @@
 
 constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 
-[[maybe_unused]] static size_t calc_file_size(std::ifstream &ifs) {
-  auto original_pos = ifs.tellg();
-  ifs.seekg(0, std::ifstream::end);
-  auto end = ifs.tellg();
-  ifs.seekg(0, std::ifstream::beg);
-  size_t file_size = end - ifs.tellg();
-  ifs.seekg(original_pos, std::ifstream::beg);
-  return file_size;
-}
-
 static size_t calc_expected_binary_stl_mesh_file_size(uint32_t num_triangles) {
   return BINARY_STL_HEADER_SIZE + sizeof(uint32_t) + num_triangles * (sizeof(float[4][3]) + sizeof(uint16_t));
 }
