@@ -5,11 +5,6 @@
 
 class Orbit_Camera {
 private:
-  float m_inclination;
-  float m_azimuth;
-  float m_orbit_radius;
-  glm::vec3 m_orbit_origin;
-
   glm::vec3 m_camera_pos{};
   glm::vec3 m_orbit_sphere_tangent{};
   glm::vec3 m_orbit_sphere_bi_tangent{};
@@ -17,12 +12,16 @@ private:
   glm::mat4 m_view_matrix{};
 
 public:
-  Orbit_Camera(float inclination, float azimuth, float orbit_radius, glm::vec3 orbit_origin);
-  void update(float inclination_offset, float azimuth_offset, float orbit_radius_offset, glm::vec3 orbit_origin_offset);
+  float m_inclination;
+  float m_azimuth;
+  float m_orbit_radius;
+  glm::vec3 m_orbit_origin;
+
+  Orbit_Camera(float inclination, float azimuth, float orbit_radius, const glm::vec3 &orbit_origin);
+
+  void update();
 
   [[nodiscard]] glm::mat4 get_view_matrix() const { return m_view_matrix; }
-
-  [[nodiscard]] float get_orbit_radius() const { return m_orbit_radius; }
 
   [[nodiscard]] glm::vec3 get_right() const { return m_orbit_sphere_tangent; }
 
