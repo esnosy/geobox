@@ -33,7 +33,11 @@ float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   glm::vec3 t_slab_min(0);
   glm::vec3 t_slab_max(std::numeric_limits<float>::infinity());
   for (int i = 0; i < 3; i++) {
-    if (!is_close(ray.direction[i], 0)) {
+    if (is_close(ray.direction[i], 0)) {
+      if (ray.origin[i] > aabb.max[i] || ray.origin[i] < aabb.min[i]) {
+        return false;
+      }
+    } else {
       // the use of std::tie https://stackoverflow.com/a/74057204/8094047
       std::tie(t_slab_min[i], t_slab_max[i]) = std::minmax((aabb.min[i] - ray.origin[i]) / ray.direction[i],
                                                            (aabb.max[i] - ray.origin[i]) / ray.direction[i]);
