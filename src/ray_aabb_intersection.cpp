@@ -17,8 +17,16 @@
   return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0)));
 }
 
+[[nodiscard]] static bool aabb_contains_point(const AABB &aabb, const glm::vec3 &v) {
+  return v.x <= aabb.max.x && v.y <= aabb.max.y && v.z <= aabb.max.z && v.x >= aabb.min.x && v.y >= aabb.min.y &&
+         v.z >= aabb.min.z;
+}
+
 float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   assert(is_not_all_zeros(ray.direction));
+  if (aabb_contains_point(aabb, ray.origin)) {
+    return true;
+  }
   // ray-aabb intersection:
   // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
   // https://web.archive.org/web/20240108120351/https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
