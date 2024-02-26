@@ -23,7 +23,8 @@ add_library(
     ${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.cpp
 )
 target_include_directories(imgui PUBLIC ${IMGUI_SRC_DIR} ${IMGUI_SRC_DIR}/backends)
-target_link_libraries(imgui PRIVATE glfw)
+find_package(OpenGL REQUIRED)
+target_link_libraries(imgui PRIVATE glfw OpenGL::GL)
 
 add_subdirectory(ImGuiFileDialog-iyad-5aca36b)
 target_link_libraries(ImGuiFileDialog PRIVATE imgui)
