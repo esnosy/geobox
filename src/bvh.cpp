@@ -1,6 +1,7 @@
 #include <algorithm> // for std::partition, std::min, std::max, std::minmax, std::min_element and std::max_element
 #include <cstdlib>   // for std::malloc, std::free, std::abort and std::abs
 #include <stack>
+#include <type_traits>
 #include <utility> // for std::as_const
 #include <vector>
 
@@ -156,8 +157,13 @@ size_t BVH::count_primitives() const {
   return num_primitives;
 }
 
+template <typename R, typename Fn, typename... Arg_Types>
+static constexpr bool stricter_is_invocable_r_v = std::is_same_v<std::invoke_result_t<Fn, Arg_Types...>, R>;
+
 template <typename Callback_Type, typename AABB_Filter_Type>
 void BVH::foreach_node(Callback_Type callback, AABB_Filter_Type aabb_filter) const {
+  static_assert(stricter_is_invocable_r_v<void, Callback_Type, const Node *> &&
+                stricter_is_invocable_r_v<bool, AABB_Filter_Type, const AABB &>);
   std::stack<const Node *> stack;
   stack.push(m_root);
   while (!stack.empty()) {
