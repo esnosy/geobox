@@ -16,3 +16,4 @@ sudo apt install libgl-dev
 
 * https://learnopengl.com/
 * https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/
+* https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
