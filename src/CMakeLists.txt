@@ -50,6 +50,7 @@ target_sources(geobox PRIVATE
     point_cloud_object.hpp
     shader.cpp
     shader.hpp
+    random_generator.hpp
 )
 
 # Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)

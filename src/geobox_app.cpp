@@ -23,6 +23,7 @@
 #include "geobox_app.hpp"
 #include "geobox_exceptions.hpp"
 #include "point_cloud_object.hpp"
+#include "random_generator.hpp"
 #include "read_stl.hpp"
 #include "shader.hpp"
 #include "triangle.hpp"
