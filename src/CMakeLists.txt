@@ -50,6 +50,8 @@ target_sources(geobox PRIVATE
     point_cloud_object.hpp
     shader.cpp
     shader.hpp
+    ray_triangle_intersection.cpp
+    ray_triangle_intersection.hpp
     random_generator.hpp
 )
 
@@ -86,3 +88,12 @@ target_link_libraries(test_ray_aabb_intersection PRIVATE glm::glm)
 target_compile_features(test_ray_aabb_intersection PRIVATE cxx_std_20)
 set_target_properties(test_ray_aabb_intersection PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_definitions(test_ray_aabb_intersection PRIVATE TEST_RAY_AABB_INTERSECTION)
+
+add_executable(test_ray_triangle_intersection
+    ray_triangle_intersection.cpp
+    ray_triangle_intersection.hpp
+)
+target_link_libraries(test_ray_triangle_intersection PRIVATE glm::glm)
+target_compile_features(test_ray_triangle_intersection PRIVATE cxx_std_20)
+set_target_properties(test_ray_triangle_intersection PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(test_ray_triangle_intersection PRIVATE TEST_RAY_TRIANGLE_INTERSECTION)
