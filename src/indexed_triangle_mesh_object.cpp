@@ -116,11 +116,13 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
   }
 
   std::vector<glm::vec3> vertex_normals(unique_vertices.size(), glm::vec3(0.0f));
+  m_triangle_normals.reserve(triangles.size());
   for (unsigned int i = 0; i < indices.size(); i += 3) {
     const glm::vec3 &a = unique_vertices[indices[i + 0]];
     const glm::vec3 &b = unique_vertices[indices[i + 1]];
     const glm::vec3 &c = unique_vertices[indices[i + 2]];
     glm::vec3 triangle_normal = glm::normalize(glm::cross(b - a, c - a));
+    m_triangle_normals.push_back(triangle_normal);
     for (int j = 0; j < 3; j++) {
       unsigned int vi = indices[i + j];
       // Avoid overflow by dividing values while accumulating them

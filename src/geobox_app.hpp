@@ -28,6 +28,9 @@ constexpr glm::vec3 DEFAULT_ORBIT_CAMERA_ORIGIN = glm::vec3(0.0f);
 
 constexpr uint32_t DEFAULT_POINTS_ON_SURFACE_COUNT = 100;
 
+constexpr uint32_t DEFAULT_POINTS_IN_VOLUME_COUNT_BEFORE_FILTERING = 10000;
+constexpr uint32_t DEFAULT_POINTS_IN_VOLUME_NUM_RAYS = 10;
+
 constexpr float DEFAULT_PERSPECTIVE_FOV_DEGREES = 45.0f;
 
 struct Undo_Redo_Entry {
@@ -118,4 +121,10 @@ private:
   uint32_t m_points_on_surface_count = DEFAULT_POINTS_ON_SURFACE_COUNT;
   [[nodiscard]] std::vector<glm::vec3> generate_points_on_surface();
   void on_generate_points_on_surface_button_click();
+
+  // Points in volume
+  uint32_t m_points_in_volume_count_before_filtering = DEFAULT_POINTS_IN_VOLUME_COUNT_BEFORE_FILTERING;
+  uint32_t m_points_in_volume_num_rays = DEFAULT_POINTS_IN_VOLUME_NUM_RAYS;
+  [[nodiscard]] std::vector<glm::vec3> generate_points_in_volume();
+  void on_generate_points_in_volume_button_click();
 };

@@ -49,4 +49,6 @@ public:
   void foreach_primitive(const std::function<void(unsigned int)> &callback,
                          const std::function<bool(const AABB &aabb)> &aabb_filter,
                          const std::function<bool(unsigned int)> &primitive_filter) const;
+
+  [[nodiscard]] const AABB &get_aabb() const { return m_root->aabb; };
 };

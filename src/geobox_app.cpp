@@ -20,10 +20,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "common.hpp"
 #include "geobox_app.hpp"
 #include "geobox_exceptions.hpp"
 #include "point_cloud_object.hpp"
 #include "random_generator.hpp"
+#include "ray_aabb_intersection.hpp"
+#include "ray_triangle_intersection.hpp"
 #include "read_stl.hpp"
 #include "shader.hpp"
 #include "triangle.hpp"
@@ -315,6 +318,114 @@ void GeoBox_App::on_generate_points_on_surface_button_click() {
   }
 }
 
+// https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#UniformSampleSphere
+[[nodiscard]] static glm::vec3 random_sphere_coords_transform(float u0, float u1) {
+  assert(u0 >= 0.0f && u0 <= 1.0f);
+  assert(u1 >= 0.0f && u1 <= 1.0f);
+  float z = 1.0f - 2.0f * u0;
+  float r = std::sqrt(std::max(0.0f, 1.0f - z * z));
+  float phi = 2 * glm::pi<float>() * u1;
+  return {r * std::cos(phi), r * std::sin(phi), z};
+}
+
+[[nodiscard]] static bool is_point_in_aabb(const glm::vec3 &p, const AABB &aabb) {
+  return glm::all(glm::greaterThanEqual(p, aabb.min) && glm::lessThanEqual(p, aabb.max));
+}
+
+std::vector<glm::vec3> GeoBox_App::generate_points_in_volume() {
+  std::vector<glm::vec3> result;
+  result.reserve(m_points_in_volume_count_before_filtering * m_objects.size());
+  std::vector<glm::vec3> directions;
+  directions.reserve(m_points_in_volume_num_rays);
+  {
+    std::mt19937 e1(m_random_device());
+    std::mt19937 e2(m_random_device());
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+    for (uint32_t i = 0; i < m_points_in_volume_num_rays; i++) {
+      float u0 = dist(e1);
+      float u1 = dist(e2);
+      glm::vec3 d = random_sphere_coords_transform(u0, u1);
+      assert(is_close(glm::length(d), 1.0f));
+      directions.push_back(d);
+    }
+  }
+  for (const std::shared_ptr<Indexed_Triangle_Mesh_Object> &object : m_objects) {
+    const std::vector<glm::vec3> &vertices = object->get_vertices();
+    const std::vector<unsigned int> &indices = object->get_indices();
+    const std::vector<glm::vec3> &triangle_normals = object->get_triangle_normals();
+    const std::shared_ptr<BVH> &bvh = object->get_triangles_bvh();
+    const AABB &object_aabb = bvh->get_aabb();
+    std::mt19937 e1(m_random_device());
+    std::mt19937 e2(m_random_device());
+    std::mt19937 e3(m_random_device());
+    assert(object_aabb.max.x >= object_aabb.min.x);
+    assert(object_aabb.max.y >= object_aabb.min.y);
+    assert(object_aabb.max.z >= object_aabb.min.z);
+    std::uniform_real_distribution<float> x_dist(object_aabb.min.x, object_aabb.max.x);
+    std::uniform_real_distribution<float> y_dist(object_aabb.min.y, object_aabb.max.y);
+    std::uniform_real_distribution<float> z_dist(object_aabb.min.z, object_aabb.max.z);
+    for (uint32_t pi = 0; pi < m_points_in_volume_count_before_filtering; pi++) {
+      glm::vec3 p{x_dist(e1), y_dist(e2), z_dist(e3)};
+      uint32_t num_positive_hits = 0;
+      for (const glm::vec3 &rd : directions) {
+        Ray ray{p, rd};
+        float closest_hit = 100000.0f;
+        bool closest_hit_is_ray_triangle_normal_dot_product_positive = false;
+        unsigned int closest_hit_triangle_index = -1;
+        bvh->foreach_primitive(
+            [&cray = std::as_const(ray), &c_triangle_normals = std::as_const(triangle_normals),
+             &c_vertices = std::as_const(vertices), &c_indices = std::as_const(indices), &closest_hit,
+             &closest_hit_is_ray_triangle_normal_dot_product_positive, &closest_hit_triangle_index](unsigned int i) {
+              float dot_product = glm::dot(cray.direction, c_triangle_normals[i]);
+              if (is_close(dot_product, 0.0f)) {
+                // Skip triangles that are parallel and coplanar to the ray
+                return;
+              }
+              const glm::vec3 &a = c_vertices[c_indices[i * 3 + 0]];
+              const glm::vec3 &b = c_vertices[c_indices[i * 3 + 1]];
+              const glm::vec3 &c = c_vertices[c_indices[i * 3 + 2]];
+              std::optional<float> t = ray_intersects_triangle_non_coplanar(cray, Triangle{a, b, c});
+              if (!t.has_value()) {
+                return;
+              }
+              if (t.value() < closest_hit) {
+                closest_hit = t.value();
+                closest_hit_is_ray_triangle_normal_dot_product_positive = (dot_product > 0.0f);
+                closest_hit_triangle_index = i;
+              }
+            },
+            [&c_ray = std::as_const(ray)](const AABB &aabb) {
+              if (is_point_in_aabb(c_ray.origin, aabb))
+                // Rays from inside the AABB necessarily intersect the AABB
+                return true;
+              return ray_aabb_intersection(c_ray, aabb) >= 0.0f;
+            },
+            [](unsigned int) { return true; });
+        if (closest_hit_is_ray_triangle_normal_dot_product_positive)
+          num_positive_hits++;
+      }
+      if (num_positive_hits > (directions.size() / 2))
+        result.push_back(p);
+    }
+  }
+  result.shrink_to_fit();
+  return result;
+}
+
+void GeoBox_App::on_generate_points_in_volume_button_click() {
+  std::vector<glm::vec3> points = generate_points_in_volume();
+  try {
+    auto point_cloud_object = std::make_shared<Point_Cloud_Object>(points, glm::mat4(1.0f));
+    m_point_cloud_objects.push_back(point_cloud_object);
+    m_undo_stack.emplace(
+        [point_cloud_object, this]() { std::erase(m_point_cloud_objects, point_cloud_object); }, // Undo
+        [point_cloud_object, this]() { m_point_cloud_objects.push_back(point_cloud_object); }    // Redo
+    );
+  } catch (const GeoBox_Error &error) {
+    std::cerr << error.what() << std::endl;
+  }
+}
+
 void GeoBox_App::draw_phong_objects(const glm::mat4 &view, const glm::mat4 &projection) const {
   m_phong_shader->use();
   m_phong_shader->get_uniform_setter<glm::vec3>("object_color")({1.0f, 1.0f, 1.0f});
@@ -424,7 +535,19 @@ void GeoBox_App::render() {
   ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x / 5, main_viewport->WorkSize.y), ImGuiCond_Always);
   ImGui::Begin("Operations", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
   if (ImGui::CollapsingHeader("Points In Volume", ImGuiTreeNodeFlags_DefaultOpen)) {
-    // TODO
+    uint32_t step = 1;
+    uint32_t step_fast = 10;
+    ImGui::InputScalar("Number of points before filtering", ImGuiDataType_U32,
+                       &m_points_in_volume_count_before_filtering, &step, &step_fast);
+    if (m_points_in_volume_count_before_filtering < 1)
+      m_points_in_volume_count_before_filtering = 1;
+    ImGui::InputScalar("Number of rays per point for inside outside detection", ImGuiDataType_U32,
+                       &m_points_in_volume_num_rays, &step, &step_fast);
+    if (m_points_in_volume_num_rays < 1)
+      m_points_in_volume_num_rays = 1;
+    if (ImGui::Button("Generate##1")) {
+      on_generate_points_in_volume_button_click();
+    }
   }
   if (ImGui::CollapsingHeader("Mesh Offset", ImGuiTreeNodeFlags_DefaultOpen)) {
     // TODO
@@ -433,7 +556,7 @@ void GeoBox_App::render() {
     uint32_t step = 1;
     uint32_t step_fast = 10;
     ImGui::InputScalar("Count", ImGuiDataType_U32, &m_points_on_surface_count, &step, &step_fast);
-    if (ImGui::Button("Generate")) {
+    if (ImGui::Button("Generate##2")) {
       on_generate_points_on_surface_button_click();
     }
   }

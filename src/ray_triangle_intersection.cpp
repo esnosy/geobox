@@ -7,7 +7,7 @@
 
 #include "ray_triangle_intersection.hpp"
 
-bool ray_intersects_triangle_non_coplanar(const Ray &ray, const Triangle &triangle) {
+std::optional<float> ray_intersects_triangle_non_coplanar(const Ray &ray, const Triangle &triangle) {
   glm::vec3 ab = triangle.vertices[1] - triangle.vertices[0];
   glm::vec3 ac = triangle.vertices[2] - triangle.vertices[0];
   // First column of cofactor matrix
@@ -17,7 +17,7 @@ bool ray_intersects_triangle_non_coplanar(const Ray &ray, const Triangle &triang
   float det = ray.direction.x * c11 + ray.direction.y * c21 + ray.direction.z * c31;
   constexpr float epsilon = 1e-5f;
   if (std::abs(det) < epsilon)
-    return false;
+    return std::nullopt;
   // Second column of cofactor matrix
   float c12 = ray.direction.y * ac.z - ray.direction.z * ac.y;
   float c22 = ray.direction.z * ac.x - ray.direction.x * ac.z;
@@ -32,16 +32,16 @@ bool ray_intersects_triangle_non_coplanar(const Ray &ray, const Triangle &triang
   glm::vec3 c = triangle.vertices[0] - ray.origin;
   float t = (c11 * c.x + c21 * c.y + c31 * c.z) / det;
   if (t < -epsilon)
-    return false;
+    return std::nullopt;
   float u = (c12 * c.x + c22 * c.y + c32 * c.z) / det;
   if (u < -epsilon)
-    return false;
+    return std::nullopt;
   float v = (c13 * c.x + c23 * c.y + c33 * c.z) / det;
   if (v < -epsilon)
-    return false;
+    return std::nullopt;
   if ((u + v) > (1.0f + epsilon))
-    return false;
-  return true;
+    return std::nullopt;
+  return t;
 }
 
 #ifdef TEST_RAY_TRIANGLE_INTERSECTION
