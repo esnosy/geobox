@@ -2,6 +2,7 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <optional>
 
 #include <glm/glm.hpp>
 
@@ -17,7 +18,7 @@
   return glm::any(glm::greaterThan(glm::abs(v), glm::vec3(0)));
 }
 
-float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
+std::optional<float> ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   assert(is_not_all_zeros(ray.direction));
   // ray-aabb intersection:
   // https://gist.github.com/bromanz/a267cdf12f6882a25180c3724d807835/4929f6d8c3b2ae1facd1d655c8d6453603c465ce
@@ -27,7 +28,7 @@ float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   for (int i = 0; i < 3; i++) {
     if (is_close(ray.direction[i], 0)) {
       if (ray.origin[i] > aabb.max[i] || ray.origin[i] < aabb.min[i]) {
-        return false;
+        return std::nullopt;
       }
     } else {
       // the use of std::tie https://stackoverflow.com/a/74057204/8094047
@@ -37,7 +38,11 @@ float ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   }
   float t_min = std::max(max_component(t_slab_min), 0.0f);
   float t_max = min_component(t_slab_max);
-  return std::min(t_min, t_max);
+  float t = std::min(t_min, t_max);
+  if (t >= 0.0f) {
+    return t;
+  }
+  return std::nullopt;
 }
 
 #ifdef TEST_RAY_AABB_INTERSECTION
@@ -81,11 +86,15 @@ int main() {
   };
 
   int i = 0;
-  float t;
   for (const Test_Case &c : cases) {
     std::cout << "Test Case: " << i << std::endl;
-    t = ray_aabb_intersection(c.ray, c.aabb);
-    if ((t >= 0) != c.does_intersect) {
+    std::optional<float> t = ray_aabb_intersection(c.ray, c.aabb);
+    bool does_intersect = false;
+    if (t.has_value()) {
+      assert(t.value() >= 0.0f);
+      does_intersect = true;
+    }
+    if (does_intersect != c.does_intersect) {
       std::abort();
     }
     i++;

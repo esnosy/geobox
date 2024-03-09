@@ -398,7 +398,11 @@ std::vector<glm::vec3> GeoBox_App::generate_points_in_volume() {
               if (is_point_in_aabb(c_ray.origin, aabb))
                 // Rays from inside the AABB necessarily intersect the AABB
                 return true;
-              return ray_aabb_intersection(c_ray, aabb) >= 0.0f;
+              std::optional<float> t = ray_aabb_intersection(c_ray, aabb);
+              if (!t.has_value())
+                return false;
+              assert(t.value() >= 0.0f);
+              return true;
             },
             [](unsigned int) { return true; });
         if (closest_hit_is_ray_triangle_normal_dot_product_positive)
