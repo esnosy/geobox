@@ -67,6 +67,7 @@ endif()
 set(RESOURCES_TARGET_DIR $<TARGET_FILE_DIR:geobox>/resources)
 
 # TODO: more efficient syncing of resources directory
+# TODO: avoid having to manually tun the "copy_resources" target
 add_custom_target(
     copy_resources ALL
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${RESOURCES_TARGET_DIR}
