@@ -1,7 +1,5 @@
 # GeoBox
 
-My geometry playground, hopefully
-
 ## Linux dependencies
 
 * libGL (On Ubuntu for example):
