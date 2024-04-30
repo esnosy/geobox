@@ -24,7 +24,7 @@ void Orbit_Camera::update() {
       -1 * sin_camera_inclination,
   };
   // We negate bi-tangent because inclination angle is relative to +Z axis, as inclination increases, Z value decreases,
-  // and we want the bi-tangent to point to the direction of increasing Z instead
+  // but we want the bi-tangent to point to the direction of increasing Z instead
   m_orbit_sphere_bi_tangent *= -1;
   m_forward = -1.0f * m_orbit_sphere_normal;
   m_camera_pos = m_orbit_sphere_normal * m_orbit_radius + m_orbit_origin;
