@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 #include "bvh.hpp"
-#include "triangle.hpp"
+#include "primitives.hpp"
 
 class Indexed_Triangle_Mesh_Object {
 private:

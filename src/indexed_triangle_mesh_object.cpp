@@ -10,7 +10,7 @@
 #include "bvh.hpp"
 #include "geobox_exceptions.hpp"
 #include "indexed_triangle_mesh_object.hpp"
-#include "triangle.hpp"
+#include "primitives.hpp"
 
 [[nodiscard]] static glm::vec3 closest_point_in_aabb(const glm::vec3 &point, const AABB &aabb) {
   return glm::clamp(point, aabb.min, aabb.max);
@@ -43,7 +43,8 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
   std::vector<AABB> vertices_as_bounding_boxes;
   vertices_as_bounding_boxes.reserve(num_vertices);
   for (const Triangle &triangle : triangles) {
-    for (const glm::vec3 &v : triangle.vertices) {
+    for (int i = 0; i < 3; i++) {
+      const glm::vec3 &v = triangle[i];
       AABB aabb{
           .min = v,
           .max = v,
@@ -74,7 +75,7 @@ Indexed_Triangle_Mesh_Object::Indexed_Triangle_Mesh_Object(const std::vector<Tri
     assert(triangle_index >= 0 && triangle_index < triangles.size());
     size_t vertex_index_in_triangle = div.rem;
     assert(vertex_index_in_triangle >= 0 && vertex_index_in_triangle <= 2);
-    return triangles[triangle_index].vertices[vertex_index_in_triangle];
+    return triangles[triangle_index][vertex_index_in_triangle];
   };
 
   unsigned int final_unique_vertex_index = 0;

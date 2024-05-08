@@ -1,14 +1,15 @@
 #include <algorithm> // for std::min and std::max
 #include <cassert>
 #include <iostream>
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include <glm/glm.hpp>
 
 #include "aabb.hpp"
 #include "common.hpp"
 #include "ray.hpp"
+#include "math.hpp"
 
 [[nodiscard]] static float min_component(const glm::vec3 &v) { return std::min(v.x, std::min(v.y, v.z)); }
 
@@ -26,7 +27,7 @@ std::optional<float> ray_aabb_intersection(const Ray &ray, const AABB &aabb) {
   glm::vec3 t_slab_min(0);
   glm::vec3 t_slab_max(std::numeric_limits<float>::infinity());
   for (int i = 0; i < 3; i++) {
-    if (is_close(ray.direction[i], 0)) {
+    if (is_close(TC::get_default(), ray.direction[i], 0)) {
       if (ray.origin[i] > aabb.max[i] || ray.origin[i] < aabb.min[i]) {
         return std::nullopt;
       }

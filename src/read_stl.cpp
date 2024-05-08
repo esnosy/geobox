@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "triangle.hpp"
+#include "primitives.hpp"
 
 constexpr size_t BINARY_STL_HEADER_SIZE = 80;
 
@@ -17,9 +17,8 @@ static std::vector<Triangle> read_stl_mesh_file_binary(std::ifstream &ifs, uint3
   for (uint32_t i = 0; i < num_triangles; i++) {
     ifs.seekg(sizeof(glm::vec3), std::ifstream::cur); // Skip normals
     // Yes we can do the reading differently but this way is nice and explicit for now
-    for (glm::vec3 &vertex : triangles.emplace_back().vertices) {
-      ifs.read((char *)&vertex, sizeof(glm::vec3));
-    }
+    Triangle &t = triangles.emplace_back();
+    ifs.read((char*)&t, sizeof(Triangle));
     // Skip "attribute byte count"
     ifs.seekg(sizeof(uint16_t), std::ifstream::cur);
   }
@@ -36,7 +35,9 @@ static std::vector<Triangle> read_stl_mesh_file_ascii(std::ifstream &ifs) {
       ifs >> token >> token >> token; // Skip x, y and z of normal vector
       ifs >> token;                   // expecting "outer"
       ifs >> token;                   // expecting "loop"
-      for (glm::vec3 &vertex : triangles.emplace_back().vertices) {
+      Triangle &t = triangles.emplace_back();
+      for (int i = 0; i < 3; i++) {
+        glm::vec3 &vertex = t[i];
         ifs >> token; // expecting "vertex"
         ifs >> vertex.x >> vertex.y >> vertex.z;
       }

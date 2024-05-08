@@ -1,6 +1,14 @@
 #pragma once
 
-#include <glm/vec3.hpp>
-
-[[nodiscard]] bool is_close(float a, float b);
-[[nodiscard]] bool is_close(const glm::vec3 &a, const glm::vec3 &b);
+// https://en.cppreference.com/mwiki/index.php?title=cpp/utility/unreachable&oldid=168420#Possible_implementation
+[[noreturn]] inline void unreachable()
+{
+    // Uses compiler-specific extensions if possible.
+    // Even if no extension is used, undefined behavior is still raised by
+    // an empty function body and the noreturn attribute.
+#if defined(_MSC_VER) && !defined(__clang__) // MSVC
+    __assume(false);
+#else // GCC, Clang
+    __builtin_unreachable();
+#endif
+}

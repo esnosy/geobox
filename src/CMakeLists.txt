@@ -35,13 +35,11 @@ target_sources(geobox PRIVATE
     bvh.hpp
     orbit_camera.cpp
     orbit_camera.hpp
-    common.cpp
     common.hpp
     indexed_triangle_mesh_object.cpp
     indexed_triangle_mesh_object.hpp
     read_stl.cpp
     read_stl.hpp
-    triangle.hpp
     aabb.hpp
     ray.hpp
     ray_aabb_intersection.cpp
@@ -50,19 +48,29 @@ target_sources(geobox PRIVATE
     point_cloud_object.hpp
     shader.cpp
     shader.hpp
-    ray_triangle_intersection.cpp
-    ray_triangle_intersection.hpp
+    intersection.cpp
+    intersection.hpp
+    math.cpp
+    math.hpp
+    primitives.cpp
+    primitives.hpp
     random_generator.hpp
 )
 
-# Enable Inter-procedural Optimization (IPO), also known as Link-Time optimization (LTO)
+# https://web.archive.org/web/20240419204531/https://cliutils.gitlab.io/modern-cmake/chapters/features/small.html#interprocedural-optimization
 include(CheckIPOSupported)
 check_ipo_supported(RESULT is_ipo_supported)
-
-if(is_ipo_supported)
-    message(STATUS "Enabling Link-Time Optimization")
-    set_target_properties(geobox PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-endif()
+if (is_ipo_supported)
+    if (MSVC AND ENABLE_ASAN)
+        # Default CMake inter-procedural optimization MSVC flags are not compatible with ASAN
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/20484
+        add_link_options(/LTCG) # Enable "Link Time Code Generation"
+        add_compile_options(/GL) # LTCG does nothing without "Whole Program Optimization"
+        add_link_options(/INCREMENTAL:NO) # Disable incremental linking because /LTCG is not compatible with it.
+    else ()
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    endif ()
+endif ()
 
 set(RESOURCES_TARGET_DIR $<TARGET_FILE_DIR:geobox>/resources)
 
@@ -82,7 +90,8 @@ include(CPack)
 add_executable(test_ray_aabb_intersection
     ray_aabb_intersection.cpp
     ray_aabb_intersection.hpp
-    common.cpp
+    math.cpp
+    math.hpp
     common.hpp
 )
 target_link_libraries(test_ray_aabb_intersection PRIVATE glm::glm)
@@ -90,11 +99,13 @@ target_compile_features(test_ray_aabb_intersection PRIVATE cxx_std_20)
 set_target_properties(test_ray_aabb_intersection PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_definitions(test_ray_aabb_intersection PRIVATE TEST_RAY_AABB_INTERSECTION)
 
-add_executable(test_ray_triangle_intersection
-    ray_triangle_intersection.cpp
-    ray_triangle_intersection.hpp
+add_executable(test_intersection
+    intersection.cpp
+    intersection.hpp
+    math.cpp
+    math.hpp
 )
-target_link_libraries(test_ray_triangle_intersection PRIVATE glm::glm)
-target_compile_features(test_ray_triangle_intersection PRIVATE cxx_std_20)
-set_target_properties(test_ray_triangle_intersection PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_definitions(test_ray_triangle_intersection PRIVATE TEST_RAY_TRIANGLE_INTERSECTION)
+target_link_libraries(test_intersection PRIVATE glm::glm)
+target_compile_features(test_intersection PRIVATE cxx_std_20)
+set_target_properties(test_intersection PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(test_intersection PRIVATE GEOBOX_TEST_INTERSECTION)

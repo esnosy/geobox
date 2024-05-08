@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cmath>
 #include <cstdlib> // for std::exit
 #include <format>
@@ -23,13 +24,14 @@
 #include "common.hpp"
 #include "geobox_app.hpp"
 #include "geobox_exceptions.hpp"
+#include "intersection.hpp"
+#include "math.hpp"
 #include "point_cloud_object.hpp"
 #include "random_generator.hpp"
 #include "ray_aabb_intersection.hpp"
-#include "ray_triangle_intersection.hpp"
 #include "read_stl.hpp"
 #include "shader.hpp"
-#include "triangle.hpp"
+#include "primitives.hpp"
 
 #ifdef ENABLE_SUPERLUMINAL_PERF_API
 #include <Superluminal/PerformanceAPI.h>
@@ -191,8 +193,7 @@ void framebuffer_size_callback(const GLFWwindow * /*window*/, int width, int hei
 }
 
 void key_callback(GLFWwindow *window, int key, int /*scancode*/, int action, int mods) {
-  if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureKeyboard)
-    return;
+  if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureKeyboard) return;
   auto app = static_cast<GeoBox_App *>(glfwGetWindowUserPointer(window));
   if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
     if (mods & GLFW_MOD_SHIFT) {
@@ -209,8 +210,7 @@ void GeoBox_App::init_glfw_callbacks() {
 }
 
 void GeoBox_App::process_input() {
-  if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureMouse || imgui_io.WantCaptureKeyboard)
-    return;
+  if (const ImGuiIO &imgui_io = ImGui::GetIO(); imgui_io.WantCaptureMouse || imgui_io.WantCaptureKeyboard) return;
 
   bool update_camera = false;
   float orbit_radius_as_speed_multiplier = glm::max(m_camera.m_orbit_radius, MIN_ORBIT_RADIUS_AS_SPEED_MULTIPLIER);
@@ -259,8 +259,7 @@ void GeoBox_App::process_input() {
     m_last_mouse_pos.reset();
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   }
-  if (update_camera)
-    m_camera.update();
+  if (update_camera) m_camera.update();
 }
 
 // https://www.pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#SamplingaTriangle
@@ -345,7 +344,7 @@ std::vector<glm::vec3> GeoBox_App::generate_points_in_volume() {
       float u0 = dist(e1);
       float u1 = dist(e2);
       glm::vec3 d = random_sphere_coords_transform(u0, u1);
-      assert(is_close(glm::length(d), 1.0f));
+      assert(is_close(TC::get_default(), glm::length(d), 1.0f));
       directions.push_back(d);
     }
   }
@@ -377,19 +376,20 @@ std::vector<glm::vec3> GeoBox_App::generate_points_in_volume() {
              &c_vertices = std::as_const(vertices), &c_indices = std::as_const(indices), &closest_hit,
              &closest_hit_is_ray_triangle_normal_dot_product_positive, &closest_hit_triangle_index](unsigned int i) {
               float dot_product = glm::dot(cray.direction, c_triangle_normals[i]);
-              if (is_close(dot_product, 0.0f)) {
+              if (is_close(TC::get_default(), dot_product, 0.0f)) {
                 // Skip triangles that are parallel and coplanar to the ray
                 return;
               }
               const glm::vec3 &a = c_vertices[c_indices[i * 3 + 0]];
               const glm::vec3 &b = c_vertices[c_indices[i * 3 + 1]];
               const glm::vec3 &c = c_vertices[c_indices[i * 3 + 2]];
-              std::optional<float> t = ray_intersects_triangle_non_coplanar(cray, Triangle{a, b, c});
-              if (!t.has_value()) {
+              std::optional<glm::vec3> v = intersect(TC::get_default(), Triangle{a, b, c}, {cray.origin, cray.origin + 99999.0f * cray.direction});
+              if (!v.has_value()) {
                 return;
               }
-              if (t.value() < closest_hit) {
-                closest_hit = t.value();
+              float t = glm::dot((v.value() - cray.origin), cray.direction);
+              if (t < closest_hit) {
+                closest_hit = t;
                 closest_hit_is_ray_triangle_normal_dot_product_positive = (dot_product > 0.0f);
                 closest_hit_triangle_index = i;
               }
@@ -399,17 +399,14 @@ std::vector<glm::vec3> GeoBox_App::generate_points_in_volume() {
                 // Rays from inside the AABB necessarily intersect the AABB
                 return true;
               std::optional<float> t = ray_aabb_intersection(c_ray, aabb);
-              if (!t.has_value())
-                return false;
+              if (!t.has_value()) return false;
               assert(t.value() >= 0.0f);
               return true;
             },
             [](unsigned int) { return true; });
-        if (closest_hit_is_ray_triangle_normal_dot_product_positive)
-          num_positive_hits++;
+        if (closest_hit_is_ray_triangle_normal_dot_product_positive) num_positive_hits++;
       }
-      if (num_positive_hits > (directions.size() / 2))
-        result.push_back(p);
+      if (num_positive_hits > (directions.size() / 2)) result.push_back(p);
     }
   }
   result.shrink_to_fit();
@@ -543,12 +540,10 @@ void GeoBox_App::render() {
     uint32_t step_fast = 10;
     ImGui::InputScalar("Number of points before filtering", ImGuiDataType_U32,
                        &m_points_in_volume_count_before_filtering, &step, &step_fast);
-    if (m_points_in_volume_count_before_filtering < 1)
-      m_points_in_volume_count_before_filtering = 1;
+    if (m_points_in_volume_count_before_filtering < 1) m_points_in_volume_count_before_filtering = 1;
     ImGui::InputScalar("Number of rays per point for inside outside detection", ImGuiDataType_U32,
                        &m_points_in_volume_num_rays, &step, &step_fast);
-    if (m_points_in_volume_num_rays < 1)
-      m_points_in_volume_num_rays = 1;
+    if (m_points_in_volume_num_rays < 1) m_points_in_volume_num_rays = 1;
     if (ImGui::Button("Generate##1")) {
       on_generate_points_in_volume_button_click();
     }
